@@ -37,7 +37,7 @@ DEFAULT_CONFIG = {
     },
     "enabled": ["claude", "cursor", "codex", "gemini", "antigravity"],
     "exclude_skills": ["skills-sync"],
-    "use_symlinks": True,
+    "use_symlinks": False,
 }
 
 
@@ -119,6 +119,30 @@ def sync_skill(skill_name: str, source_dir: Path, target_dir: Path, use_symlinks
         return True, "copy"
 
 
+def cleanup_orphaned_skills(source_skills: list[str], target_dir: Path, exclude: list[str]) -> list[str]:
+    """Remove skills in target that no longer exist in source."""
+    removed = []
+    if not target_dir.exists():
+        return removed
+    
+    for item in target_dir.iterdir():
+        if item.is_dir() or item.is_symlink():
+            skill_name = item.name
+            # Skip if in source or excluded
+            if skill_name in source_skills or skill_name in exclude:
+                continue
+            # Check if it looks like a skill (has SKILL.md or is symlink to skill)
+            is_skill = (item / "SKILL.md").exists() if item.is_dir() and not item.is_symlink() else True
+            if is_skill:
+                if item.is_symlink():
+                    item.unlink()
+                else:
+                    shutil.rmtree(item)
+                removed.append(skill_name)
+    
+    return removed
+
+
 def remove_skill_from_target(skill_name: str, target_dir: Path) -> tuple[bool, str]:
     """Remove a skill from a target directory."""
     target = target_dir / skill_name
@@ -179,6 +203,12 @@ def _sync_global(config: dict, skill_name: Optional[str], use_symlinks: bool, ex
             success, method = sync_skill(skill, source_dir, target_dir, use_symlinks)
             status = "OK" if success else "FAIL"
             print(f"    [{status}] {skill} ({method})")
+        
+        # Cleanup orphaned skills (only when syncing all skills)
+        if not skill_name:
+            removed = cleanup_orphaned_skills(skills, target_dir, exclude)
+            for r in removed:
+                print(f"    [DEL] {r} (orphaned)")
     
     print("\n[GLOBAL] Sync complete!")
 
@@ -222,6 +252,12 @@ def _sync_project(config: dict, skill_name: Optional[str], project_dir: Optional
             success, method = sync_skill(skill, source_dir, target_dir, use_symlinks)
             status = "OK" if success else "FAIL"
             print(f"    [{status}] {skill} ({method})")
+        
+        # Cleanup orphaned skills (only when syncing all skills)
+        if not skill_name:
+            removed = cleanup_orphaned_skills(skills, target_dir, exclude)
+            for r in removed:
+                print(f"    [DEL] {r} (orphaned)")
     
     print("\n[PROJECT] Sync complete!")
 

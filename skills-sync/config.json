@@ -17,5 +17,5 @@
   },
   "enabled": ["claude", "cursor", "codex", "gemini", "antigravity"],
   "exclude_skills": ["skills-sync"],
-  "use_symlinks": true
+  "use_symlinks": false
 }
