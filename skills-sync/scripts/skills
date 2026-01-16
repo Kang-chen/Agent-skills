@@ -1,0 +1,5 @@
+#!/bin/bash
+# Skills Sync - Quick access wrapper
+# Add to PATH or create alias: alias skills='~/.ai-skills/skills-sync/scripts/skills'
+
+python3 ~/.ai-skills/skills-sync/scripts/sync.py "$@"

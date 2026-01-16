@@ -1,0 +1,21 @@
+{
+  "global_source_dir": "~/.ai-skills",
+  "project_source_dir": ".ai-skills",
+  "global_targets": {
+    "claude": "~/.claude/skills",
+    "cursor": "~/.cursor/skills",
+    "codex": "~/.codex/skills",
+    "gemini": "~/.gemini/skills",
+    "antigravity": "~/.gemini/antigravity/skills"
+  },
+  "project_targets": {
+    "claude": ".claude/skills",
+    "cursor": ".cursor/skills",
+    "codex": ".codex/skills",
+    "gemini": ".gemini/skills",
+    "antigravity": ".agent/skills"
+  },
+  "enabled": ["claude", "cursor", "codex", "gemini", "antigravity"],
+  "exclude_skills": ["skills-sync"],
+  "use_symlinks": true
+}
