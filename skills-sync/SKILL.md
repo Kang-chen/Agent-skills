@@ -1,11 +1,16 @@
 ---
 name: skills-sync
-description: Unified skills synchronization across multiple AI IDEs. Syncs skills from a single source to Claude Code, Cursor, Codex, Gemini CLI, and Antigravity. Supports both global (user-level) and project-level syncing with separate source directories. Automatically removes orphaned skills from targets. Use when managing, installing, or syncing skills across IDEs.
+description: Unified skills synchronization across multiple AI IDEs. Syncs skills from ~/.ai-skills/ to Claude Code, Cursor, Codex, Gemini CLI, and Antigravity. Use when you need to sync local skills to IDE targets, NOT for installing skills from GitHub (use skill-manager or skill-installer instead).
 ---
 
 # Skills Sync
 
 Synchronize skills across AI coding assistants from a single source of truth.
+
+## When to Use
+
+- **Use skills-sync**: After adding/removing skills in `~/.ai-skills/`, to push changes to all IDEs
+- **Do NOT use skills-sync**: To search or install skills from GitHub (use skill-manager/skill-installer)
 
 ## Architecture
 
@@ -26,83 +31,18 @@ PROJECT: <project>/.ai-skills/  →  <project>/.xxx/skills/
 
 ## Commands
 
-### Scope Flags
-
-- `-g, --global` : Global scope (`~/.ai-skills/`)
-- `-p, --project` : Project scope (`<project>/.ai-skills/`)
-- Default: global only
-
-### Sync Skills
-
 ```bash
-skills sync -g                    # Sync global skills to all IDEs
-skills sync -p                    # Sync project skills
-skills sync -g -p                 # Sync both scopes
-skills sync my-skill -g           # Sync single skill (no cleanup)
-```
-
-Sync performs:
-1. Copy/symlink skills from source to all enabled IDE targets
-2. **Auto-cleanup**: Remove orphaned skills (exist in target but not in source)
-
-### Initialize Project
-
-```bash
-skills init -p                    # Create <project>/.ai-skills/
-```
-
-### Install Skill
-
-```bash
-skills install my-skill -g        # Install to ~/.ai-skills/
-skills install my-skill -p        # Install to <project>/.ai-skills/
-skills install my-skill -s /path  # Install from source
-```
-
-### Remove Skill
-
-```bash
-skills remove my-skill -g         # Remove from global (source + targets)
-skills remove my-skill -p         # Remove from project
-skills remove my-skill --keep-source  # Keep source, remove from targets only
-```
-
-### List & Status
-
-```bash
-skills list -g                    # List global skills
-skills list -p                    # List project skills
-skills status -g -p               # Check sync status for all
+python ~/.ai-skills/skills-sync/scripts/sync.py sync -g       # Sync global skills
+python ~/.ai-skills/skills-sync/scripts/sync.py sync -p       # Sync project skills
+python ~/.ai-skills/skills-sync/scripts/sync.py list -g       # List global skills
+python ~/.ai-skills/skills-sync/scripts/sync.py status -g     # Check sync status
 ```
 
 ## Workflow
 
-### Global Skills (shared across all projects)
-
-1. Add/remove skills in `~/.ai-skills/<skill-name>/SKILL.md`
-2. Run `skills sync -g`
-   - New skills: copied to all IDE targets
-   - Removed skills: automatically deleted from targets
-
-### Project Skills (version-controlled, project-specific)
-
-1. Run `skills init -p` to create `.ai-skills/`
-2. Add skills to `<project>/.ai-skills/<skill-name>/SKILL.md`
-3. Run `skills sync -p`
-4. Commit `.ai-skills/` to version control
-
-## Sync Output
-
-```
-[GLOBAL] Source: /home/user/.ai-skills
-[GLOBAL] Syncing 5 skill(s)...
-
-  [CLAUDE] /home/user/.claude/skills
-    [OK] git (copy)
-    [OK] jupyter-notebooks (copy)
-    [DEL] jupyter-notebook-ops (orphaned)    # Auto-removed
-    [DEL] jupytext-notebook-edits (orphaned) # Auto-removed
-```
+1. Install skills to `~/.ai-skills/` using skill-manager or skill-installer
+2. Run `sync -g` to push to all IDEs
+3. Restart IDEs to load new skills
 
 ## Configuration
 
@@ -111,14 +51,19 @@ Edit `~/.ai-skills/skills-sync/config.json`:
 ```json
 {
   "global_source_dir": "~/.ai-skills",
-  "project_source_dir": ".ai-skills",
-  "global_targets": { ... },
-  "project_targets": { ... },
+  "global_targets": { "claude": "~/.claude/skills", ... },
   "enabled": ["claude", "cursor", "codex", "gemini", "antigravity"],
-  "exclude_skills": ["skills-sync"],
-  "use_symlinks": false
+  "exclude_skills": [],
+  "preserve_target_skills": {
+    "codex": [".system"]
+  }
 }
 ```
 
-- `exclude_skills`: Skills excluded from sync and cleanup
-- `use_symlinks`: Use symlinks instead of copies (faster, but may not work on all systems)
+- `exclude_skills`: Skills excluded from sync (empty = sync all)
+- `preserve_target_skills`: Directories preserved in target (e.g., Codex `.system/`)
+
+## Notes
+
+- Does NOT modify `~/.codex/skills/.system/` (Codex pre-installed skills)
+- Auto-removes orphaned skills from targets during full sync

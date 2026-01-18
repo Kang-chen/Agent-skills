@@ -119,17 +119,30 @@ def sync_skill(skill_name: str, source_dir: Path, target_dir: Path, use_symlinks
         return True, "copy"
 
 
-def cleanup_orphaned_skills(source_skills: list[str], target_dir: Path, exclude: list[str]) -> list[str]:
-    """Remove skills in target that no longer exist in source."""
+def cleanup_orphaned_skills(source_skills: list[str], target_dir: Path, exclude: list[str], 
+                           preserve_dirs: list[str] = None) -> list[str]:
+    """Remove skills in target that no longer exist in source.
+    
+    Args:
+        source_skills: List of skill names in source
+        target_dir: Target directory to cleanup
+        exclude: Skills to exclude from cleanup
+        preserve_dirs: Directories to preserve (e.g., ['.system'] for Codex)
+    """
     removed = []
     if not target_dir.exists():
         return removed
     
+    preserve_dirs = preserve_dirs or []
+    
     for item in target_dir.iterdir():
         if item.is_dir() or item.is_symlink():
             skill_name = item.name
-            # Skip if in source or excluded
+            # Skip if in source, excluded, or in preserve list
             if skill_name in source_skills or skill_name in exclude:
+                continue
+            # Skip preserved directories (like .system)
+            if skill_name in preserve_dirs:
                 continue
             # Check if it looks like a skill (has SKILL.md or is symlink to skill)
             is_skill = (item / "SKILL.md").exists() if item.is_dir() and not item.is_symlink() else True
@@ -178,6 +191,7 @@ def cmd_sync(config: dict, skill_name: Optional[str], scope: str, project_dir: O
 def _sync_global(config: dict, skill_name: Optional[str], use_symlinks: bool, exclude: list[str]):
     """Sync global skills."""
     source_dir = expand_path(config.get("global_source_dir", "~/.ai-skills"))
+    preserve_target_skills = config.get("preserve_target_skills", {})
     
     if skill_name:
         skills = [skill_name]
@@ -206,7 +220,9 @@ def _sync_global(config: dict, skill_name: Optional[str], use_symlinks: bool, ex
         
         # Cleanup orphaned skills (only when syncing all skills)
         if not skill_name:
-            removed = cleanup_orphaned_skills(skills, target_dir, exclude)
+            # Get preserve dirs for this IDE (e.g., .system for codex)
+            preserve_dirs = preserve_target_skills.get(ide_name, [])
+            removed = cleanup_orphaned_skills(skills, target_dir, exclude, preserve_dirs)
             for r in removed:
                 print(f"    [DEL] {r} (orphaned)")
     

@@ -16,6 +16,9 @@
     "antigravity": ".agent/skills"
   },
   "enabled": ["claude", "cursor", "codex", "gemini", "antigravity"],
-  "exclude_skills": ["skills-sync"],
-  "use_symlinks": false
+  "exclude_skills": [],
+  "use_symlinks": false,
+  "preserve_target_skills": {
+    "codex": [".system"]
+  }
 }
