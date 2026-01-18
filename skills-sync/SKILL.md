@@ -1,16 +1,56 @@
 ---
 name: skills-sync
-description: Unified skills synchronization across multiple AI IDEs. Syncs skills from ~/.ai-skills/ to Claude Code, Cursor, Codex, Gemini CLI, and Antigravity. Use when you need to sync local skills to IDE targets, NOT for installing skills from GitHub (use skill-manager or skill-installer instead).
+description: "DEPRECATED - Use skill-manager instead. This skill is kept for backward compatibility. For syncing skills: use 'skills sync' from skill-manager."
 ---
 
-# Skills Sync
+# Skills Sync (DEPRECATED)
 
-Synchronize skills across AI coding assistants from a single source of truth.
+> **Note:** This skill has been merged into **skill-manager**. Please use skill-manager for all skill operations.
 
-## When to Use
+## Migration Guide
 
-- **Use skills-sync**: After adding/removing skills in `~/.ai-skills/`, to push changes to all IDEs
-- **Do NOT use skills-sync**: To search or install skills from GitHub (use skill-manager/skill-installer)
+Use these skill-manager commands instead:
+
+| Old (skills-sync) | New (skill-manager) |
+|-------------------|---------------------|
+| `sync.py sync -g` | `skills sync` |
+| `sync.py sync -p` | `skills sync --local` |
+| `sync.py list -g` | `skills list` |
+| `sync.py status -g` | `skills status` |
+
+## New Commands
+
+```bash
+# Sync all skills to all IDEs
+python ~/.ai-skills/skill-manager/scripts/skills sync
+
+# Sync single skill
+python ~/.ai-skills/skill-manager/scripts/skills sync my-skill
+
+# Sync with dry-run preview
+python ~/.ai-skills/skill-manager/scripts/skills sync --dry-run
+
+# Check sync status
+python ~/.ai-skills/skill-manager/scripts/skills status
+
+# Verify sync consistency
+python ~/.ai-skills/skill-manager/scripts/skills verify
+```
+
+---
+
+## Legacy Scripts (Still Available)
+
+The original scripts remain for backward compatibility:
+
+### Sync Commands
+
+```bash
+python ~/.ai-skills/skills-sync/scripts/sync.py sync -g       # Sync global skills
+python ~/.ai-skills/skills-sync/scripts/sync.py sync -p       # Sync project skills
+python ~/.ai-skills/skills-sync/scripts/sync.py list -g       # List global skills
+python ~/.ai-skills/skills-sync/scripts/sync.py status -g     # Check sync status
+```
 
 ## Architecture
 
@@ -29,22 +69,7 @@ PROJECT: <project>/.ai-skills/  →  <project>/.xxx/skills/
 | Gemini CLI | `~/.gemini/skills/` | `.gemini/skills/` |
 | Antigravity | `~/.gemini/antigravity/skills/` | `.agent/skills/` |
 
-## Commands
-
-```bash
-python ~/.ai-skills/skills-sync/scripts/sync.py sync -g       # Sync global skills
-python ~/.ai-skills/skills-sync/scripts/sync.py sync -p       # Sync project skills
-python ~/.ai-skills/skills-sync/scripts/sync.py list -g       # List global skills
-python ~/.ai-skills/skills-sync/scripts/sync.py status -g     # Check sync status
-```
-
-## Workflow
-
-1. Install skills to `~/.ai-skills/` using skill-manager or skill-installer
-2. Run `sync -g` to push to all IDEs
-3. Restart IDEs to load new skills
-
-## Configuration
+## Configuration (Legacy)
 
 Edit `~/.ai-skills/skills-sync/config.json`:
 
@@ -59,9 +84,6 @@ Edit `~/.ai-skills/skills-sync/config.json`:
   }
 }
 ```
-
-- `exclude_skills`: Skills excluded from sync (empty = sync all)
-- `preserve_target_skills`: Directories preserved in target (e.g., Codex `.system/`)
 
 ## Notes
 

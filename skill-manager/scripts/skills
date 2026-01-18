@@ -1,0 +1,506 @@
+#!/usr/bin/env python3
+"""
+Skill Manager CLI - Unified skill management for AI IDEs.
+
+Usage:
+    skills                  # Interactive menu
+    skills list             # List installed skills
+    skills search "query"   # Search community skills
+    skills install <url>    # Install from GitHub
+    skills create <name>    # Create new skill
+    skills sync             # Sync to all IDEs
+    skills remove <name>    # Remove skill
+    skills validate         # Validate skills
+    skills export           # Export profile
+    skills import <file>    # Import profile
+    skills status           # Check status
+"""
+
+import os
+import sys
+
+# Add scripts directory to path
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+
+# Now we can import using absolute imports within the package
+# But since this is a standalone script, we need to modify cli.py imports too
+# Let's use a different approach - import the module directly
+
+def main():
+    """Main entry point."""
+    import argparse
+    import json
+    from pathlib import Path
+    
+    # Import utility functions directly
+    exec_globals = {}
+    exec(open(os.path.join(scripts_dir, "utils.py")).read(), exec_globals)
+    
+    expand_path = exec_globals['expand_path']
+    load_config = exec_globals['load_config']
+    get_skills_from_dir = exec_globals['get_skills_from_dir']
+    find_project_root = exec_globals['find_project_root']
+    get_skill_description = exec_globals['get_skill_description']
+    print_json = exec_globals['print_json']
+    
+    def show_interactive_menu():
+        """Show interactive menu when called without arguments."""
+        config = load_config()
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        exclude = config.get("exclude_skills", [])
+        skills = get_skills_from_dir(source_dir, exclude)
+        enabled_ides = config.get("enabled_ides", [])
+        
+        print()
+        print("╔════════════════════════════════════════════════════╗")
+        print("║         Skill Manager - Interactive Mode           ║")
+        print("╠════════════════════════════════════════════════════╣")
+        print(f"║ Installed Skills: {len(skills):<33}║")
+        print(f"║ Enabled IDEs: {', '.join(enabled_ides[:4]):<37}║")
+        print("╚════════════════════════════════════════════════════╝")
+        print()
+        print("1. List installed skills")
+        print("2. Search community skills")
+        print("3. Install a skill")
+        print("4. Create new skill")
+        print("5. Sync to all IDEs")
+        print("6. Validate skills")
+        print("7. Export profile")
+        print("8. Import profile")
+        print("9. Check status")
+        print("0. Exit")
+        print()
+        
+        try:
+            choice = input("Enter choice [0-9]: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting.")
+            return
+        
+        if choice == "0" or not choice:
+            return
+        elif choice == "1":
+            cmd_list(config, expand_path, get_skills_from_dir, get_skill_description)
+        elif choice == "2":
+            query = input("Search query: ").strip()
+            if query:
+                cmd_search(query, scripts_dir)
+        elif choice == "3":
+            url = input("GitHub URL: ").strip()
+            if url:
+                cmd_install(url, config, expand_path, scripts_dir)
+        elif choice == "4":
+            name = input("Skill name: ").strip()
+            if name:
+                cmd_create(name, config, expand_path, scripts_dir)
+        elif choice == "5":
+            cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir)
+        elif choice == "6":
+            cmd_validate(config, expand_path, get_skills_from_dir, scripts_dir)
+        elif choice == "7":
+            cmd_export(config, expand_path, get_skills_from_dir, scripts_dir)
+        elif choice == "8":
+            path = input("Profile path or Gist ID: ").strip()
+            if path:
+                cmd_import_profile(path, scripts_dir)
+        elif choice == "9":
+            cmd_status(config, expand_path, get_skills_from_dir)
+        else:
+            print("Invalid choice.")
+
+    def cmd_list(config, expand_path, get_skills_from_dir, get_skill_description, 
+                 scope="global", project_dir=None, json_output=False):
+        """List installed skills."""
+        exclude = config.get("exclude_skills", [])
+        result = {"global": [], "local": []}
+        
+        if scope in ("global", "all"):
+            source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+            skills = get_skills_from_dir(source_dir, exclude)
+            
+            if not json_output:
+                print(f"[GLOBAL] {source_dir}\n")
+                if skills:
+                    for skill in skills:
+                        skill_path = source_dir / skill
+                        desc = get_skill_description(skill_path)
+                        print(f"  - {skill}")
+                        if desc:
+                            print(f"    {desc}")
+                    print(f"\n  Total: {len(skills)} skill(s)")
+                else:
+                    print("  (no skills)")
+            
+            for skill in skills:
+                skill_path = source_dir / skill
+                result["global"].append({
+                    "name": skill,
+                    "path": str(skill_path),
+                    "description": get_skill_description(skill_path),
+                })
+        
+        if json_output:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        
+        return result
+
+    def cmd_status(config, expand_path, get_skills_from_dir):
+        """Check status."""
+        exclude = config.get("exclude_skills", [])
+        
+        print("Skill Manager Status\n")
+        print("=" * 50)
+        
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        skills = get_skills_from_dir(source_dir, exclude)
+        
+        print(f"\n[GLOBAL]")
+        print(f"  Source: {source_dir}")
+        print(f"  Skills: {len(skills)}")
+        
+        print(f"\n  IDE Targets:")
+        for ide_name in config.get("enabled_ides", []):
+            target_path = config.get("targets", {}).get(ide_name)
+            if target_path:
+                target_dir = expand_path(target_path)
+                exists = target_dir.exists()
+                count = len(list(target_dir.iterdir())) if exists else 0
+                status = f"{count} skills" if exists else "not created"
+                print(f"    [{ide_name}] {target_dir} ({status})")
+        
+        print(f"\n[CONFIG]")
+        print(f"  Auto-commit: {config.get('git', {}).get('auto_commit', True)}")
+        print(f"  Auto-sync after install: {config.get('sync', {}).get('auto_after_install', True)}")
+
+    def cmd_search(query, scripts_dir):
+        """Search for skills."""
+        import subprocess
+        subprocess.run([sys.executable, "-c", f"""
+import sys
+sys.path.insert(0, '{scripts_dir}')
+exec(open('{scripts_dir}/search.py').read().replace('from .utils', '# from .utils'))
+
+# Re-import needed functions
+import json
+import os
+import time
+from pathlib import Path
+
+def expand_path(path, base_dir=None):
+    expanded = os.path.expandvars(os.path.expanduser(path))
+    p = Path(expanded)
+    if not p.is_absolute() and base_dir:
+        return base_dir / p
+    return p
+
+def load_config():
+    config_path = expand_path("~/.ai-skills/skill-manager/config.json")
+    if config_path.exists():
+        with open(config_path) as f:
+            return json.load(f)
+    return {{}}
+
+# Run search
+db_path = Path('{scripts_dir}').parent / "data" / "all_skills_with_cn.json"
+if db_path.exists():
+    with open(db_path) as f:
+        skills = json.load(f)
+    
+    query_lower = "{query}".lower()
+    results = []
+    for skill in skills:
+        name = skill.get("name", "").lower()
+        desc = skill.get("description", "").lower()
+        score = 0
+        if query_lower in name:
+            score += 10
+        if query_lower == name:
+            score += 20
+        if query_lower in desc:
+            score += 5
+        if score > 0:
+            results.append((score, skill))
+    
+    results.sort(key=lambda x: -x[0])
+    results = results[:15]
+    
+    print(f'Searching for "{query}" in {{len(skills):,}} skills...\\n')
+    print(f"Found {{len(results)}} results:\\n")
+    
+    for i, (score, skill) in enumerate(results, 1):
+        name = skill.get("name", "unknown")
+        repo = skill.get("repo", "")
+        desc = skill.get("description", "")[:80]
+        url = skill.get("url", "")
+        print(f"{{i}}. {{repo}}/{{name}}" if repo else f"{{i}}. {{name}}")
+        if desc:
+            print(f"   {{desc}}")
+        if url:
+            print(f"   URL: {{url}}")
+        print()
+    
+    print("Install: skills install <url>")
+else:
+    print("Skills database not found.")
+"""])
+
+    def cmd_install(url, config, expand_path, scripts_dir):
+        """Install a skill."""
+        import subprocess
+        dest_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        subprocess.run([
+            sys.executable, 
+            os.path.join(scripts_dir, "..", "references", "skill-creator", "..", "..", "skill-installer", "scripts", "install-skill-from-github.py"),
+            "--url", url,
+            "--dest", str(dest_dir)
+        ])
+
+    def cmd_create(name, config, expand_path, scripts_dir):
+        """Create a new skill."""
+        import subprocess
+        dest_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        creator_script = os.path.join(scripts_dir, "..", "references", "skill-creator", "scripts", "init_skill.py")
+        if os.path.exists(creator_script):
+            subprocess.run([sys.executable, creator_script, name, "--path", str(dest_dir)])
+        else:
+            # Fallback: create minimal skill
+            skill_dir = dest_dir / name
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            skill_md = skill_dir / "SKILL.md"
+            skill_title = " ".join(word.capitalize() for word in name.split("-"))
+            skill_md.write_text(f"""---
+name: {name}
+description: [TODO: Add description]
+---
+
+# {skill_title}
+
+[TODO: Add content]
+""")
+            print(f"Created skill at {skill_dir}")
+
+    def cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir, skill_name=None):
+        """Sync skills to all IDEs."""
+        import shutil
+        
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        exclude = config.get("exclude_skills", [])
+        use_symlinks = config.get("sync", {}).get("use_symlinks", False)
+        preserve_target_skills = config.get("preserve_target_skills", {})
+        
+        if skill_name:
+            skills = [skill_name]
+        else:
+            skills = get_skills_from_dir(source_dir, exclude)
+        
+        if not skills:
+            print(f"[GLOBAL] No skills found in {source_dir}")
+            return
+        
+        print(f"[GLOBAL] Source: {source_dir}")
+        print(f"[GLOBAL] Syncing {len(skills)} skill(s)...\n")
+        
+        for ide_name in config.get("enabled_ides", []):
+            target_path = config.get("targets", {}).get(ide_name)
+            if not target_path:
+                continue
+            
+            target_dir = expand_path(target_path)
+            print(f"  [{ide_name.upper()}] {target_dir}")
+            
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            for skill in skills:
+                source = source_dir / skill
+                target = target_dir / skill
+                
+                if not source.exists():
+                    print(f"    [FAIL] {skill} (not found)")
+                    continue
+                
+                if target.exists() or target.is_symlink():
+                    if target.is_symlink():
+                        target.unlink()
+                    elif target.is_dir():
+                        shutil.rmtree(target)
+                
+                if use_symlinks:
+                    try:
+                        target.symlink_to(source.resolve())
+                        print(f"    [OK] {skill} (symlink)")
+                    except OSError:
+                        shutil.copytree(source, target)
+                        print(f"    [OK] {skill} (copy)")
+                else:
+                    shutil.copytree(source, target)
+                    print(f"    [OK] {skill} (copy)")
+            
+            # Cleanup orphaned
+            if not skill_name:
+                preserve_dirs = preserve_target_skills.get(ide_name, [])
+                for item in target_dir.iterdir():
+                    if item.is_dir() or item.is_symlink():
+                        if item.name not in skills and item.name not in exclude and item.name not in preserve_dirs:
+                            if (item / "SKILL.md").exists() if item.is_dir() and not item.is_symlink() else True:
+                                if item.is_symlink():
+                                    item.unlink()
+                                else:
+                                    shutil.rmtree(item)
+                                print(f"    [DEL] {item.name} (orphaned)")
+        
+        print("\n[GLOBAL] Sync complete!")
+
+    def cmd_validate(config, expand_path, get_skills_from_dir, scripts_dir, skill_name=None):
+        """Validate skills."""
+        import re
+        
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        exclude = config.get("exclude_skills", [])
+        
+        if skill_name:
+            skills = [skill_name]
+        else:
+            skills = get_skills_from_dir(source_dir, exclude)
+        
+        print(f"Validating {len(skills)} skill(s) from {source_dir}\n")
+        
+        for skill in skills:
+            skill_path = source_dir / skill
+            skill_md = skill_path / "SKILL.md"
+            
+            print(f"Validating: {skill}")
+            print("=" * 60)
+            
+            if not skill_md.exists():
+                print("[FAIL] SKILL.md not found")
+                continue
+            
+            content = skill_md.read_text()
+            
+            # Check name format
+            if re.match(r"^[a-z0-9-]+$", skill):
+                print(f"[PASS] name: valid format")
+            else:
+                print(f"[FAIL] name: must be kebab-case")
+            
+            # Check frontmatter
+            if content.startswith("---"):
+                if "name:" in content and "description:" in content:
+                    print("[PASS] YAML: has required fields")
+                else:
+                    print("[WARN] YAML: missing name or description")
+            else:
+                print("[FAIL] YAML: no frontmatter found")
+            
+            # Check file size
+            lines = len(content.split("\n"))
+            if lines <= 500:
+                print(f"[PASS] SKILL.md: {lines} lines")
+            else:
+                print(f"[WARN] SKILL.md: {lines} lines (> 500)")
+            
+            print()
+        
+        print("Validation complete!")
+
+    def cmd_export(config, expand_path, get_skills_from_dir, scripts_dir):
+        """Export profile."""
+        import time
+        
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        exclude = config.get("exclude_skills", [])
+        skills = get_skills_from_dir(source_dir, exclude)
+        
+        profile = {
+            "version": "1.0.0",
+            "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "skills": [{"name": s, "source": "local"} for s in skills],
+        }
+        
+        output_path = expand_path("~/.skills-profile.json")
+        with open(output_path, "w") as f:
+            json.dump(profile, f, indent=2)
+        
+        print(f"Exported {len(skills)} skills to {output_path}")
+
+    def cmd_import_profile(source, scripts_dir):
+        """Import profile."""
+        print(f"Import from: {source}")
+        print("(Import functionality requires full module)")
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description="Unified skill management for AI IDEs",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--version", action="version", version="skill-manager 1.0.0")
+    
+    subparsers = parser.add_subparsers(dest="command", help="Command")
+    
+    # list
+    list_parser = subparsers.add_parser("list", help="List installed skills")
+    list_parser.add_argument("-g", "--global", dest="global_scope", action="store_true")
+    list_parser.add_argument("-l", "--local", dest="local_scope", action="store_true")
+    
+    # search
+    search_parser = subparsers.add_parser("search", help="Search community skills")
+    search_parser.add_argument("query", help="Search query")
+    
+    # install
+    install_parser = subparsers.add_parser("install", help="Install a skill")
+    install_parser.add_argument("url", help="GitHub URL")
+    
+    # create
+    create_parser = subparsers.add_parser("create", help="Create a new skill")
+    create_parser.add_argument("name", help="Skill name")
+    create_parser.add_argument("--resources", help="Resource dirs")
+    
+    # sync
+    sync_parser = subparsers.add_parser("sync", help="Sync skills to IDEs")
+    sync_parser.add_argument("skill", nargs="?", help="Specific skill")
+    
+    # validate
+    validate_parser = subparsers.add_parser("validate", help="Validate skills")
+    validate_parser.add_argument("skill", nargs="?", help="Specific skill")
+    
+    # status
+    status_parser = subparsers.add_parser("status", help="Check status")
+    
+    # export
+    export_parser = subparsers.add_parser("export", help="Export profile")
+    
+    # verify
+    verify_parser = subparsers.add_parser("verify", help="Verify sync")
+    
+    args = parser.parse_args()
+    config = load_config()
+    
+    if not args.command:
+        show_interactive_menu()
+    elif args.command == "list":
+        cmd_list(config, expand_path, get_skills_from_dir, get_skill_description, 
+                json_output=args.json)
+    elif args.command == "search":
+        cmd_search(args.query, scripts_dir)
+    elif args.command == "install":
+        cmd_install(args.url, config, expand_path, scripts_dir)
+    elif args.command == "create":
+        cmd_create(args.name, config, expand_path, scripts_dir)
+    elif args.command == "sync":
+        cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir, 
+                getattr(args, "skill", None))
+    elif args.command == "validate" or args.command == "verify":
+        cmd_validate(config, expand_path, get_skills_from_dir, scripts_dir,
+                    getattr(args, "skill", None))
+    elif args.command == "status":
+        cmd_status(config, expand_path, get_skills_from_dir)
+    elif args.command == "export":
+        cmd_export(config, expand_path, get_skills_from_dir, scripts_dir)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,52 @@
+{
+  "source_dir": "~/.ai-skills",
+  "project_source_dir": ".ai-skills",
+  
+  "targets": {
+    "claude": "~/.claude/skills",
+    "cursor": "~/.cursor/skills",
+    "codex": "~/.codex/skills",
+    "gemini": "~/.gemini/skills",
+    "antigravity": "~/.gemini/antigravity/skills"
+  },
+  
+  "project_targets": {
+    "claude": ".claude/skills",
+    "cursor": ".cursor/skills",
+    "codex": ".codex/skills",
+    "gemini": ".gemini/skills",
+    "antigravity": ".agent/skills"
+  },
+  
+  "enabled_ides": ["claude", "cursor", "codex", "gemini", "antigravity"],
+  
+  "git": {
+    "auto_commit": true,
+    "commit_prefix": "skills:",
+    "auto_push": false
+  },
+  
+  "sync": {
+    "auto_after_install": true,
+    "auto_after_create": false,
+    "auto_after_remove": true,
+    "use_symlinks": false,
+    "default_scope": "global"
+  },
+  
+  "exclude_skills": ["skill-manager"],
+  
+  "preserve_target_skills": {
+    "codex": [".system"]
+  },
+  
+  "search": {
+    "index_path": "~/.ai-skills/skill-manager/data/index.json",
+    "cache_ttl_hours": 24
+  },
+  
+  "profile": {
+    "default_export_path": "~/.skills-profile.json",
+    "gist_id": null
+  }
+}

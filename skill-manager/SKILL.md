@@ -1,228 +1,213 @@
 ---
 name: skill-manager
-description: A Claude Code skill that allows you to search, browse, and install skills from a database of 31,767+ community skills with intelligent folder-level downloads. Supports SVN export, Git sparse checkout, and HTTP fallback methods for complete skill folder installation.
-version: 2.0.0
-author: buzhangsan@github
-license: MIT
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - WebFetch
-tags:
-  - skill-management
-  - package-manager
-  - search
-  - installation
-  - svn
-  - git
-requirements:
-  - Node.js >= 14.0.0
-  - Internet connection
-  - SVN client (recommended) or Git
+description: >-
+  Unified skill management for AI IDEs. Use when users want to:
+  list skills ("what skills do I have", "show installed skills"),
+  search skills ("find skills for X", "search for PDF skill"),
+  install skills ("install a skill", "add skill from GitHub"),
+  create skills ("create a new skill", "make a skill"),
+  sync skills ("sync to all IDEs", "push skills"),
+  remove skills ("remove skill X", "uninstall skill"),
+  validate skills ("validate my skills", "check skill format"),
+  export/import profiles ("export my skills", "import profile", "sync across machines").
+  Supports 5 IDEs: Claude Code, Cursor, Codex, Gemini CLI, Antigravity.
+  IMPORTANT: When creating or modifying skills, always follow the guidelines
+  in references/skill-creator/SKILL.md.
 ---
 
 # Skill Manager
 
-A Claude Code skill that allows you to search, browse, and install skills from a database of 31,767+ community skills with intelligent folder-level downloads.
+Unified CLI for managing AI skills across all IDEs.
 
-## Description
+## IMPORTANT: Skill Guidelines Reference
 
-Skill Manager provides an easy way to discover and install Claude Code skills. Simply describe what you're looking for, and it will search through a comprehensive database of skills, display matching results with ratings and descriptions, and automatically download the complete skill folder (not just SKILL.md) to your Claude environment.
+**When creating, installing, or modifying skills, ALWAYS read and follow:**
 
-## Features
+[references/skill-creator/SKILL.md](references/skill-creator/SKILL.md)
 
-- Search through 31,767+ skills from the community
-- Intelligent search with weighted scoring (name, description, author)
-- View skill details including stars, forks, author, and description
-- **Smart installation with multiple methods:**
-  - **SVN export** (preferred): Downloads only the skill folder efficiently
-  - **Git sparse checkout**: Falls back if SVN unavailable
-  - **SKILL.md only**: Final fallback for minimal installation
-- Complete folder download including all scripts, data, and documentation
-- Automatic configuration and usage guide display
-- Support for both English and Chinese descriptions
+This is the authoritative guide for skill structure, including:
+- Concise is Key principle
+- Progressive Disclosure pattern
+- YAML frontmatter requirements
+- File organization rules
+- Anti-patterns to avoid
 
-## Installation Methods
+## Important Paths
 
-The skill automatically selects the best available method:
+- **Source (SSOT)**: `~/.ai-skills/` - Single Source of Truth
+- **Guidelines**: `~/.ai-skills/skill-manager/references/skill-creator/SKILL.md`
+- **Claude Code**: `~/.claude/skills/`
+- **Cursor**: `~/.cursor/skills/`
+- **Codex**: `~/.codex/skills/`
+- **Gemini CLI**: `~/.gemini/skills/`
+- **Antigravity**: `~/.gemini/antigravity/skills/`
+- **Config**: `~/.ai-skills/skill-manager/config.json`
 
-### 1. SVN Export (Recommended)
-- **Fastest and most efficient**
-- Downloads only the specific skill folder
-- No Git history overhead
-- **Requirement**: SVN client installed
-  - Windows: `choco install svn` or download from TortoiseSVN
-  - Mac: `brew install svn`
-  - Linux: `apt-get install subversion` or `yum install subversion`
+## Quick Reference
 
-### 2. Git Sparse Checkout
-- Alternative when SVN unavailable
-- Uses Git's sparse checkout feature
-- Downloads only needed files
-- **Requirement**: Git installed
+| Task | Command |
+|------|---------|
+| Interactive menu | `skills` |
+| Search skills | `skills search "query"` |
+| Install from URL | `skills install <github-url>` |
+| Create new skill | `skills create <name>` |
+| Sync to IDEs | `skills sync` |
+| List installed | `skills list` |
+| Remove skill | `skills remove <name>` |
+| Validate skill | `skills validate <name>` |
+| Export profile | `skills export` |
+| Import profile | `skills import <file>` |
+| Check status | `skills status` |
+| Verify sync | `skills verify` |
 
-### 3. SKILL.md Only (Fallback)
-- Minimal installation
-- Downloads only the SKILL.md file
-- Works without any special tools
-- Limited functionality for skills requiring additional files
+## Usage Examples
 
-## Usage
+**User:** "What skills do I have installed?"
 
-When you need to find and install a skill, simply tell Claude what you're looking for:
-
-```
-I need a skill for Python testing
-```
-
-```
-Find me a skill to help with Docker
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills list --json
 ```
 
-```
-Search for skills related to API development
-```
+**User:** "Find me a skill for working with Docker"
 
-Claude will:
-1. Search the skills database
-2. Display matching results with ratings
-3. Ask you to select one
-4. **Download the complete skill folder** automatically
-5. Show you the configuration and usage guide
-
-## Installation
-
-This skill includes the skills database file in the `data/` directory:
-- `data/all_skills_with_cn.json` (30.33 MB)
-
-## Technical Details
-
-The skill uses Node.js to:
-- Parse and search the JSON skills database
-- **Automatically detect available download methods (SVN, Git, or HTTP)**
-- **Use SVN export for efficient folder-only downloads**
-- **Fall back to Git sparse checkout if SVN unavailable**
-- Download complete skill folders with all files (scripts, data, docs)
-- Install skills to `~/.claude/skills/` directory
-- Parse skill configuration from SKILL.md content
-- Display formatted installation guides with method used
-
-## Download Method Selection
-
-The skill intelligently selects the best method:
-
-```javascript
-if (SVN available) {
-  → Use SVN export (fastest, most efficient)
-} else if (Git available) {
-  → Use Git sparse checkout (slower but complete)
-} else {
-  → Download SKILL.md only (minimal fallback)
-}
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills search "docker"
 ```
 
-**Why SVN for GitHub?**
-- GitHub supports SVN protocol for folder-level access
-- Much faster than cloning entire repositories
-- No Git history overhead
-- Perfect for downloading specific skill folders
+**User:** "Install the docx skill from anthropics"
 
-## Examples
-
-**Example 1: Installing with SVN (Full Download)**
-```
-User: I need help with Python testing
-Assistant: [Searches database and shows results]
-1. pytest-helper (by python-community)
-   ⭐ 1,250 stars | 🔀 342 forks
-   📝 Helps write and run pytest tests with fixtures and assertions...
-   🔗 https://github.com/python-community/pytest-helper
-
-User: Install the first one
-Assistant: [Detects SVN, downloads complete folder with all scripts]
-   ✓ SVN detected - using efficient folder download
-   ✓ Method used: SVN
-   ✓ Files installed: SKILL.md, pytest_runner.py, fixtures.py, README.md
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills install https://github.com/anthropics/skills/tree/main/skills/docx
 ```
 
-**Example 2: Fallback to Git Sparse Checkout**
-```
-User: Find me skills for A股
-Assistant: [Shows Chinese stock market skills]
+**User:** "Create a skill for formatting SQL"
 
-User: Install technical-indicators
-Assistant: [SVN not found, uses Git sparse checkout]
-   ✓ Git detected - using sparse checkout
-   ✓ Method used: Git Sparse Checkout
-   ✓ Files installed: SKILL.md, skill.py, references/
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills create sql-formatter
 ```
 
-**Example 3: Search by author**
-```
-User: Show me skills by pytorch
-Assistant: [Searches and displays PyTorch organization skills]
+**User:** "Sync my skills to all IDEs"
+
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills sync
 ```
 
-**Example 4: Search by functionality**
-```
-User: Find skills for code review
-Assistant: [Searches for code review related skills]
+**User:** "Export my skills to share with another machine"
+
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills export --gist
 ```
 
 ## Commands
 
-The skill responds to natural language requests like:
-- "Find skills for [topic]"
-- "Search for [keyword] skills"
-- "Show me skills by [author]"
-- "I need help with [task]"
-- "Install skill number [N]"
-- "Install [skill-name]"
+### skills (no args) - Interactive Menu
 
-## Notes
+When called without arguments, displays interactive menu:
 
-- Skills are installed to `~/.claude/skills/[skill-name]/SKILL.md`
-- After installation, restart Claude Code to load the new skill
-- The database includes skills with GitHub stats (stars, forks) for quality reference
-- Search results are ranked by relevance and popularity
+```
+╔════════════════════════════════════════════════════╗
+║         Skill Manager - Interactive Mode           ║
+╠════════════════════════════════════════════════════╣
+║ Installed Skills: 15                               ║
+║ Enabled IDEs: claude, cursor, codex, gemini        ║
+╚════════════════════════════════════════════════════╝
 
-## Requirements
+1. List installed skills
+2. Search community skills
+3. Install a skill
+...
+```
 
-- Node.js runtime (>= 14.0.0)
-- Internet connection for downloading skills from GitHub
-- Skills database file (`all_skills_with_cn.json`)
-- **Recommended**: SVN client for optimal installation
-  - Windows: `choco install svn` or TortoiseSVN
-  - Mac: `brew install svn`
-  - Linux: `apt-get install subversion`
-- **Alternative**: Git client (usually pre-installed)
+### skills search
 
-## Performance Comparison
+Search community skills database.
 
-| Method | Speed | Files Downloaded | Disk Usage | Requirements |
-|--------|-------|------------------|------------|--------------|
-| **SVN Export** | ⚡⚡⚡ Fast | All skill files | Minimal | SVN client |
-| **Git Sparse Checkout** | ⚡⚡ Medium | All skill files | Small .git overhead | Git |
-| **SKILL.md Only** | ⚡ Slow (HTTP) | Only SKILL.md | Minimal | None |
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills search "python testing"
+```
 
-**Recommendation**: Install SVN for the best experience!
+### skills install
 
-## Database Statistics
+Install from GitHub URL or search results.
 
-- Total Skills: 31,767
-- Skills with Chinese translations: 31,752 (99.95%)
-- Skills from diverse authors and organizations
-- Regular updates from GitHub repositories
+```bash
+# From URL
+python ~/.ai-skills/skill-manager/scripts/skills install https://github.com/anthropics/skills/tree/main/skills/docx
 
----
+# From search
+python ~/.ai-skills/skill-manager/scripts/skills install --query "pdf" --index 1
+```
 
-**Created**: 2025-12-26
-**Version**: 2.0.0
-**Updates in v2.0**:
-- Added SVN export support for efficient folder downloads
-- Added Git sparse checkout as fallback method
-- Now downloads complete skill folders, not just SKILL.md
-- Automatic method detection and selection
-- Enhanced error handling and troubleshooting tips
+### skills create
+
+Create new skill from template (follows skill-creator guidelines).
+
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills create my-skill --resources scripts,references
+```
+
+### skills sync
+
+Sync skills to all enabled IDEs.
+
+```bash
+# Sync all
+python ~/.ai-skills/skill-manager/scripts/skills sync
+
+# Sync single skill
+python ~/.ai-skills/skill-manager/scripts/skills sync my-skill
+
+# Dry run
+python ~/.ai-skills/skill-manager/scripts/skills sync --dry-run
+```
+
+### skills validate
+
+Validate skills against guidelines and verify sync.
+
+```bash
+python ~/.ai-skills/skill-manager/scripts/skills validate my-skill
+```
+
+### skills export / import
+
+Export and import skill profiles for cross-machine sync.
+
+```bash
+# Export to Gist
+python ~/.ai-skills/skill-manager/scripts/skills export --gist
+
+# Import from Gist
+python ~/.ai-skills/skill-manager/scripts/skills import --gist <gist-id>
+```
+
+## Scope Flags
+
+- `-g, --global`: Global scope (`~/.ai-skills/`)
+- `-l, --local`: Project scope (`.ai-skills/`)
+
+## Error Handling
+
+| Error | Solution |
+|-------|----------|
+| git clone fails | Check URL, network, or if repo is private |
+| No SKILL.md found | Skill repo may be structured differently |
+| Invalid YAML | Show syntax error line and suggest fix |
+| Permission denied | Check directory permissions |
+| Skill already exists | Ask if user wants to update or reinstall |
+| Sync hash mismatch | Run `skills sync --force` to overwrite |
+
+## Configuration
+
+Edit `~/.ai-skills/skill-manager/config.json` to customize:
+
+- `git.auto_commit`: Enable/disable auto commit (default: true)
+- `git.auto_push`: Enable/disable auto push (default: false)
+- `sync.auto_after_install`: Auto sync after install (default: true)
+- `enabled_ides`: List of IDEs to sync to
+- `exclude_skills`: Skills to exclude from sync
+- `preserve_target_skills`: Directories to preserve in targets (e.g., Codex `.system/`)
+
+## For Creating Skills
+
+**Always refer to:** [references/skill-creator/SKILL.md](references/skill-creator/SKILL.md)

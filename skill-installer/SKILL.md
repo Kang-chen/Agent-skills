@@ -1,46 +1,55 @@
 ---
 name: skill-installer
-description: Install skills from curated lists or GitHub repos into ~/.ai-skills/. Use when user asks to list available skills, install from curated repos (anthropics/skills, openai/skills), or install from any GitHub URL. Supports private repos via GITHUB_TOKEN.
+description: "DEPRECATED - Use skill-manager instead. This skill is kept for backward compatibility. For installing skills: use 'skills install <url>' from skill-manager."
 ---
 
-# Skill Installer
+# Skill Installer (DEPRECATED)
 
-Install skills from curated lists or GitHub repositories.
+> **Note:** This skill has been merged into **skill-manager**. Please use skill-manager for all skill operations.
 
-## When to Use
+## Migration Guide
 
-- **Use skill-installer**: To list/install from curated skill repos or install by repo/path
-- **Use skill-manager**: To search through 31k+ community skills database
-- **Use skills-sync**: After installation, to sync to all IDEs
+Use these skill-manager commands instead:
 
-## Scripts
+| Old (skill-installer) | New (skill-manager) |
+|----------------------|---------------------|
+| `list-curated-skills.py` | `skills search <query>` |
+| `install-skill-from-github.py --url <url>` | `skills install <url>` |
+
+## New Commands
+
+```bash
+# Search for skills
+python ~/.ai-skills/skill-manager/scripts/skills search "pdf"
+
+# Install from GitHub URL
+python ~/.ai-skills/skill-manager/scripts/skills install https://github.com/anthropics/skills/tree/main/skills/docx
+
+# Install and auto-sync
+python ~/.ai-skills/skill-manager/scripts/skills install <url>
+```
+
+---
+
+## Legacy Scripts (Still Available)
+
+The original scripts remain for backward compatibility:
 
 ### List Curated Skills
 
 ```bash
-# List from anthropics/skills (default)
 python ~/.ai-skills/skill-installer/scripts/list-curated-skills.py
-
-# List from openai/skills
 python ~/.ai-skills/skill-installer/scripts/list-curated-skills.py --repo openai/skills --path skills/.curated
-
-# JSON output
-python ~/.ai-skills/skill-installer/scripts/list-curated-skills.py --format json
 ```
 
 ### Install from GitHub URL
 
 ```bash
-# Install from URL
 python ~/.ai-skills/skill-installer/scripts/install-skill-from-github.py \
   --url https://github.com/anthropics/skills/tree/main/skills/docx
-
-# Install from repo + path
-python ~/.ai-skills/skill-installer/scripts/install-skill-from-github.py \
-  --repo anthropics/skills --path skills/docx skills/pdf
 ```
 
-## Options
+## Options (Legacy)
 
 - `--repo <owner/repo>`: GitHub repository
 - `--path <path>`: Path(s) to skill(s) inside repo
@@ -50,16 +59,7 @@ python ~/.ai-skills/skill-installer/scripts/install-skill-from-github.py \
 - `--name <name>`: Override skill name
 - `--method auto|download|git`: Download method
 
-## Workflow
-
-1. List curated skills to see what's available
-2. Install selected skill(s)
-3. Run `skills-sync` to push to all IDEs
-4. Restart IDE to load new skill
-
 ## Notes
 
-- Installs to `~/.ai-skills/<skill-name>/`
-- Aborts if destination already exists (delete first to reinstall)
 - Private repos: set `GITHUB_TOKEN` or `GH_TOKEN` environment variable
-- Uses Git sparse checkout (fast, downloads only needed files)
+- After installing, run `skills sync` to push to all IDEs
