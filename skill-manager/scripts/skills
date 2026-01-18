@@ -246,16 +246,27 @@ else:
     print("Skills database not found.")
 """])
 
-    def cmd_install(url, config, expand_path, scripts_dir):
+    def cmd_install(url, config, expand_path, scripts_dir, dest_override=None):
         """Install a skill."""
         import subprocess
-        dest_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
-        subprocess.run([
-            sys.executable, 
-            os.path.join(scripts_dir, "..", "references", "skill-creator", "..", "..", "skill-installer", "scripts", "install-skill-from-github.py"),
-            "--url", url,
-            "--dest", str(dest_dir)
-        ])
+        dest_dir = dest_override or expand_path(config.get("source_dir", "~/.ai-skills"))
+        installer_script = expand_path("~/.ai-skills/skill-installer/scripts/install-skill-from-github.py")
+        
+        if installer_script.exists():
+            result = subprocess.run([
+                sys.executable, 
+                str(installer_script),
+                "--url", url,
+                "--dest", str(dest_dir)
+            ])
+            
+            # Auto-sync after install if successful
+            if result.returncode == 0 and config.get("sync", {}).get("auto_after_install", True):
+                print("\n[Auto-sync] Syncing to all IDEs...")
+                cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir)
+        else:
+            print(f"Error: Installer script not found: {installer_script}")
+            print("Please ensure skill-installer is available.")
 
     def cmd_create(name, config, expand_path, scripts_dir):
         """Create a new skill."""
@@ -425,10 +436,147 @@ description: [TODO: Add description]
         
         print(f"Exported {len(skills)} skills to {output_path}")
 
-    def cmd_import_profile(source, scripts_dir):
+    def cmd_import_profile(source, config, expand_path, get_skills_from_dir, scripts_dir):
         """Import profile."""
-        print(f"Import from: {source}")
-        print("(Import functionality requires full module)")
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        exclude = config.get("exclude_skills", [])
+        installed_skills = set(get_skills_from_dir(source_dir, exclude))
+        
+        # Load profile
+        profile_path = Path(source)
+        if not profile_path.exists():
+            print(f"Error: Profile not found: {source}")
+            return
+        
+        with open(profile_path) as f:
+            profile = json.load(f)
+        
+        print(f"Importing from: {source}")
+        print(f"Profile version: {profile.get('version', 'unknown')}")
+        print(f"Exported at: {profile.get('exported_at', 'unknown')}")
+        print(f"\nSkills in profile: {len(profile.get('skills', []))}")
+        print(f"Currently installed: {len(installed_skills)}\n")
+        
+        profile_skills = {s["name"] for s in profile.get("skills", [])}
+        
+        # Find differences
+        to_restore = profile_skills - installed_skills
+        extra = installed_skills - profile_skills
+        
+        if to_restore:
+            print(f"Missing (need to restore): {', '.join(sorted(to_restore))}")
+        if extra:
+            print(f"Extra (not in profile): {', '.join(sorted(extra))}")
+        
+        if not to_restore and not extra:
+            print("Profile matches current state - nothing to do.")
+            return
+        
+        print(f"\nNote: Profile restore for local skills requires manual reinstall.")
+        print(f"Use 'skills install <url>' for each missing skill.")
+
+    def cmd_remove(skill_name, config, expand_path, get_skills_from_dir, scripts_dir, force=False):
+        """Remove a skill."""
+        import shutil
+        
+        source_dir = expand_path(config.get("source_dir", "~/.ai-skills"))
+        exclude = config.get("exclude_skills", [])
+        
+        if skill_name in exclude and not force:
+            print(f"Error: Cannot remove protected skill: {skill_name}")
+            print("Use --force to override.")
+            return False
+        
+        skill_path = source_dir / skill_name
+        if not skill_path.exists():
+            print(f"Error: Skill not found: {skill_name}")
+            return False
+        
+        print(f"Removing skill: {skill_name}\n")
+        
+        # Remove from IDE targets
+        for ide_name in config.get("enabled_ides", []):
+            target_path = config.get("targets", {}).get(ide_name)
+            if target_path:
+                target_dir = expand_path(target_path) / skill_name
+                if target_dir.exists() or target_dir.is_symlink():
+                    if target_dir.is_symlink():
+                        target_dir.unlink()
+                    else:
+                        shutil.rmtree(target_dir)
+                    print(f"  [{ide_name.upper()}] removed")
+                else:
+                    print(f"  [{ide_name.upper()}] not present")
+        
+        # Remove from source
+        shutil.rmtree(skill_path)
+        print(f"\n  [SOURCE] Removed: {skill_path}")
+        
+        print(f"\nRemoval complete!")
+        return True
+
+    def cmd_sync_local(config, expand_path, get_skills_from_dir, project_dir, skill_name=None):
+        """Sync local/project skills to project IDE targets."""
+        import shutil
+        
+        source_dir = project_dir / config.get("project_source_dir", ".ai-skills")
+        exclude = config.get("exclude_skills", [])
+        use_symlinks = config.get("sync", {}).get("use_symlinks", False)
+        
+        if not source_dir.exists():
+            print(f"[LOCAL] Source not found: {source_dir}")
+            print(f"Create with: mkdir -p {source_dir}")
+            return
+        
+        if skill_name:
+            skills = [skill_name]
+        else:
+            skills = get_skills_from_dir(source_dir, exclude)
+        
+        if not skills:
+            print(f"[LOCAL] No skills found in {source_dir}")
+            return
+        
+        print(f"[LOCAL] Project: {project_dir}")
+        print(f"[LOCAL] Source: {source_dir}")
+        print(f"[LOCAL] Syncing {len(skills)} skill(s)...\n")
+        
+        for ide_name in config.get("enabled_ides", []):
+            target_path = config.get("project_targets", {}).get(ide_name)
+            if not target_path:
+                continue
+            
+            target_dir = project_dir / target_path
+            print(f"  [{ide_name.upper()}] {target_dir}")
+            
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            for skill in skills:
+                source = source_dir / skill
+                target = target_dir / skill
+                
+                if not source.exists():
+                    print(f"    [FAIL] {skill} (not found)")
+                    continue
+                
+                if target.exists() or target.is_symlink():
+                    if target.is_symlink():
+                        target.unlink()
+                    elif target.is_dir():
+                        shutil.rmtree(target)
+                
+                if use_symlinks:
+                    try:
+                        target.symlink_to(source.resolve())
+                        print(f"    [OK] {skill} (symlink)")
+                    except OSError:
+                        shutil.copytree(source, target)
+                        print(f"    [OK] {skill} (copy)")
+                else:
+                    shutil.copytree(source, target)
+                    print(f"    [OK] {skill} (copy)")
+        
+        print("\n[LOCAL] Sync complete!")
 
     # Parse arguments
     parser = argparse.ArgumentParser(
@@ -462,6 +610,8 @@ description: [TODO: Add description]
     # sync
     sync_parser = subparsers.add_parser("sync", help="Sync skills to IDEs")
     sync_parser.add_argument("skill", nargs="?", help="Specific skill")
+    sync_parser.add_argument("-l", "--local", dest="local_scope", action="store_true", help="Sync local/project skills")
+    sync_parser.add_argument("--project-dir", type=Path, default=None, help="Project directory")
     
     # validate
     validate_parser = subparsers.add_parser("validate", help="Validate skills")
@@ -473,8 +623,21 @@ description: [TODO: Add description]
     # export
     export_parser = subparsers.add_parser("export", help="Export profile")
     
+    # import
+    import_parser = subparsers.add_parser("import", help="Import profile")
+    import_parser.add_argument("source", help="Profile file path")
+    
+    # remove
+    remove_parser = subparsers.add_parser("remove", help="Remove a skill")
+    remove_parser.add_argument("skill", help="Skill name")
+    remove_parser.add_argument("-f", "--force", action="store_true", help="Force remove")
+    
     # verify
     verify_parser = subparsers.add_parser("verify", help="Verify sync")
+    
+    # init (for local projects)
+    init_parser = subparsers.add_parser("init", help="Initialize local skills")
+    init_parser.add_argument("--project-dir", type=Path, default=None)
     
     args = parser.parse_args()
     config = load_config()
@@ -491,8 +654,13 @@ description: [TODO: Add description]
     elif args.command == "create":
         cmd_create(args.name, config, expand_path, scripts_dir)
     elif args.command == "sync":
-        cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir, 
-                getattr(args, "skill", None))
+        skill = getattr(args, "skill", None)
+        local = getattr(args, "local_scope", False)
+        if local:
+            project_dir = getattr(args, "project_dir", None) or find_project_root(Path.cwd()) or Path.cwd()
+            cmd_sync_local(config, expand_path, get_skills_from_dir, project_dir, skill)
+        else:
+            cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir, skill)
     elif args.command == "validate" or args.command == "verify":
         cmd_validate(config, expand_path, get_skills_from_dir, scripts_dir,
                     getattr(args, "skill", None))
@@ -500,6 +668,22 @@ description: [TODO: Add description]
         cmd_status(config, expand_path, get_skills_from_dir)
     elif args.command == "export":
         cmd_export(config, expand_path, get_skills_from_dir, scripts_dir)
+    elif args.command == "import":
+        cmd_import_profile(args.source, config, expand_path, get_skills_from_dir, scripts_dir)
+    elif args.command == "remove":
+        cmd_remove(args.skill, config, expand_path, get_skills_from_dir, scripts_dir, 
+                  getattr(args, "force", False))
+    elif args.command == "init":
+        project_dir = getattr(args, "project_dir", None) or Path.cwd()
+        local_source = project_dir / config.get("project_source_dir", ".ai-skills")
+        if local_source.exists():
+            print(f"Local skills directory already exists: {local_source}")
+        else:
+            local_source.mkdir(parents=True)
+            print(f"Created local skills directory: {local_source}")
+            print(f"\nNext steps:")
+            print(f"  1. Add skills to {local_source}/<skill-name>/SKILL.md")
+            print(f"  2. Run: skills sync --local")
 
 
 if __name__ == "__main__":
