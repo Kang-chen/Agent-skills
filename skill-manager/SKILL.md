@@ -1,15 +1,16 @@
 ---
 name: skill-manager
 description: >-
-  Unified skill management for AI IDEs. Use when users want to:
-  list skills ("what skills do I have", "show installed skills"),
-  search skills ("find skills for X", "search for PDF skill"),
-  install skills ("install a skill", "add skill from GitHub"),
-  create skills ("create a new skill", "make a skill"),
-  sync skills ("sync to all IDEs", "push skills"),
-  remove skills ("remove skill X", "uninstall skill"),
-  validate skills ("validate my skills", "check skill format"),
-  export/import profiles ("export my skills", "import profile", "sync across machines").
+  Unified skill management for AI IDEs. Triggers when user wants to manage, 
+  sync, install, remove, or organize skills across IDEs. Common triggers include:
+  (1) list/show skills (列出技能, 查看技能, "what skills do I have"),
+  (2) sync skills (同步技能, 将skill同步, "sync to all IDEs", "push skills"),
+  (3) install skills (安装技能, "install from GitHub"),
+  (4) remove/delete skills (删除技能, 移除技能),
+  (5) create new skills (创建技能, 新建skill),
+  (6) validate skills (验证技能, 检查skill格式),
+  (7) export/import profiles (导出技能, 导入配置).
+  Also triggers for: skill management, 技能管理, skill操作.
   Supports 5 IDEs: Claude Code, Cursor, Codex, Gemini CLI, Antigravity.
   IMPORTANT: When creating or modifying skills, always follow the guidelines
   in references/skill-creator/SKILL.md.
@@ -45,20 +46,20 @@ This is the authoritative guide for skill structure, including:
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Interactive menu | `skills` |
-| Search skills | `skills search "query"` |
+| Task             | Command                       |
+| ---------------- | ----------------------------- |
+| Interactive menu | `skills`                      |
+| Search skills    | `skills search "query"`       |
 | Install from URL | `skills install <github-url>` |
-| Create new skill | `skills create <name>` |
-| Sync to IDEs | `skills sync` |
-| List installed | `skills list` |
-| Remove skill | `skills remove <name>` |
-| Validate skill | `skills validate <name>` |
-| Export profile | `skills export` |
-| Import profile | `skills import <file>` |
-| Check status | `skills status` |
-| Verify sync | `skills verify` |
+| Create new skill | `skills create <name>`        |
+| Sync to IDEs     | `skills sync`                 |
+| List installed   | `skills list`                 |
+| Remove skill     | `skills remove <name>`        |
+| Validate skill   | `skills validate <name>`      |
+| Export profile   | `skills export`               |
+| Import profile   | `skills import <file>`        |
+| Check status     | `skills status`               |
+| Verify sync      | `skills verify`               |
 
 ## Usage Examples
 
@@ -188,14 +189,14 @@ python ~/.ai-skills/skill-manager/scripts/skills import --gist <gist-id>
 
 ## Error Handling
 
-| Error | Solution |
-|-------|----------|
-| git clone fails | Check URL, network, or if repo is private |
-| No SKILL.md found | Skill repo may be structured differently |
-| Invalid YAML | Show syntax error line and suggest fix |
-| Permission denied | Check directory permissions |
-| Skill already exists | Ask if user wants to update or reinstall |
-| Sync hash mismatch | Run `skills sync --force` to overwrite |
+| Error                | Solution                                  |
+| -------------------- | ----------------------------------------- |
+| git clone fails      | Check URL, network, or if repo is private |
+| No SKILL.md found    | Skill repo may be structured differently  |
+| Invalid YAML         | Show syntax error line and suggest fix    |
+| Permission denied    | Check directory permissions               |
+| Skill already exists | Ask if user wants to update or reinstall  |
+| Sync hash mismatch   | Run `skills sync --force` to overwrite    |
 
 ## Configuration
 
