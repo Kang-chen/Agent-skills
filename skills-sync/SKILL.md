@@ -67,7 +67,7 @@ PROJECT: <project>/.ai-skills/  →  <project>/.xxx/skills/
 | Cursor | `~/.cursor/skills/` | `.cursor/skills/` |
 | Codex | `~/.codex/skills/` | `.codex/skills/` |
 | Gemini CLI | `~/.gemini/skills/` | `.gemini/skills/` |
-| Antigravity | `~/.gemini/antigravity/skills/` | `.agent/skills/` |
+| Antigravity | `~/.gemini/antigravity/global_skills/` | `.agent/skills/` |
 
 ## Configuration (Legacy)
 

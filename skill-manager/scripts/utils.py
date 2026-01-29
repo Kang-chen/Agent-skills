@@ -33,7 +33,7 @@ def get_default_config() -> dict:
             "cursor": "~/.cursor/skills",
             "codex": "~/.codex/skills",
             "gemini": "~/.gemini/skills",
-            "antigravity": "~/.gemini/antigravity/skills",
+            "antigravity": "~/.gemini/antigravity/global_skills",
         },
         "project_targets": {
             "claude": ".claude/skills",
