@@ -41,7 +41,7 @@ This is the authoritative guide for skill structure, including:
 - **Cursor**: `~/.cursor/skills/`
 - **Codex**: `~/.codex/skills/`
 - **Gemini CLI**: `~/.gemini/skills/`
-- **Antigravity**: `~/.gemini/antigravity/skills/`
+- **Antigravity**: `~/.gemini/antigravity/global_skills/`
 - **Config**: `~/.ai-skills/skill-manager/config.json`
 
 ## Quick Reference
