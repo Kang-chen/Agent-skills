@@ -270,25 +270,3 @@ update_task(task_id=STUCK_TASK_ID, status="todo")
 | Worktree策略 | [references/worktree.md](references/worktree.md)   |
 | 工作流模板   | [references/templates.md](references/templates.md) |
 | 高级功能     | [references/advanced.md](references/advanced.md)   |
-
----
-
-## 八、项目配置
-
-> [!WARNING]
-> ID 可能过期。启动前使用 `list_projects` 和 `list_repos` 验证。
-
-```yaml
-# 使用 MCP 工具动态获取:
-# list_projects() → project_id
-# list_repos(project_id) → repo_id
-
-project_id: 92f9433f-ce91-4370-aeeb-651359227edd  # 2026-02-01 验证
-
-repos:
-  CartaPA_analysis:
-    id: b07e0759-5bd2-45d3-9644-3bc4ea47f176
-    default_branch: master  # 重要: 不是 main!
-
-vibe_kanban_url: http://127.0.0.1:35823
-```
