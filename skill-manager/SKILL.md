@@ -1,7 +1,7 @@
 ---
 name: skill-manager
 description: >-
-  Unified skill management for AI IDEs. Triggers when user wants to manage, 
+  Unified skill management for AI IDEs. Triggers when user wants to manage,
   sync, install, remove, or organize skills across IDEs. Common triggers include:
   (1) list/show skills (列出技能, 查看技能, "what skills do I have"),
   (2) sync skills (同步技能, 将skill同步, "sync to all IDEs", "push skills"),
@@ -20,195 +20,152 @@ description: >-
 
 Unified CLI for managing AI skills across all IDEs.
 
-## IMPORTANT: Skill Guidelines Reference
+## CRITICAL: Global vs Project Skills
 
-**When creating, installing, or modifying skills, ALWAYS read and follow:**
+**ALWAYS confirm scope before any operation. Default assumptions cause errors.**
 
-[references/skill-creator/SKILL.md](references/skill-creator/SKILL.md)
+| Scope | Location | When to Use |
+|-------|----------|-------------|
+| **Global** | `~/.ai-skills/` → syncs to `~/.claude/skills/` | Personal skills, shared across all projects |
+| **Project** | `./.ai-skills/` → syncs to `./.cursor/skills/` | Project-specific skills, version controlled |
 
-This is the authoritative guide for skill structure, including:
-- Concise is Key principle
-- Progressive Disclosure pattern
-- YAML frontmatter requirements
-- File organization rules
-- Anti-patterns to avoid
+### Mandatory Confirmation
+
+Before install, create, or sync, **ALWAYS ask user:**
+
+> "Should this skill be installed globally (`~/.ai-skills/`) or for this project only (`./.ai-skills/`)?"
+
+**Default behavior:**
+- If user says "project" or "local" → use `./.ai-skills/` in current working directory
+- If user says "global" → use `~/.ai-skills/`
+- If unclear → **ASK, do not assume**
+
+### Common Mistake to Avoid
+
+**WRONG:** User says "save to project" but agent syncs to `~/.claude/skills/`
+**RIGHT:** User says "save to project" → save to `./.cursor/skills/` or `./.ai-skills/` in CWD
+
+## Skill Guidelines Reference
+
+When creating or modifying skills: [references/skill-creator/SKILL.md](references/skill-creator/SKILL.md)
 
 ## Important Paths
 
-- **Source (SSOT)**: `~/.ai-skills/` - Single Source of Truth
-- **Guidelines**: `~/.ai-skills/skill-manager/references/skill-creator/SKILL.md`
-- **Claude Code**: `~/.claude/skills/`
-- **Cursor**: `~/.cursor/skills/`
-- **Codex**: `~/.codex/skills/`
-- **Gemini CLI**: `~/.gemini/skills/`
-- **Antigravity**: `~/.gemini/antigravity/skills/`
-- **Config**: `~/.ai-skills/skill-manager/config.json`
+| Type | Path |
+|------|------|
+| **Global SSOT** | `~/.ai-skills/` |
+| **Project SSOT** | `./.ai-skills/` (in project root) |
+| **Claude Code (global)** | `~/.claude/skills/` |
+| **Claude Code (project)** | `./.claude/skills/` |
+| **Cursor (global)** | `~/.cursor/skills/` |
+| **Cursor (project)** | `./.cursor/skills/` |
 
 ## Quick Reference
 
-| Task             | Command                       |
-| ---------------- | ----------------------------- |
-| Interactive menu | `skills`                      |
-| Search skills    | `skills search "query"`       |
-| Install from URL | `skills install <github-url>` |
-| Create new skill | `skills create <name>`        |
-| Sync to IDEs     | `skills sync`                 |
-| List installed   | `skills list`                 |
-| Remove skill     | `skills remove <name>`        |
-| Validate skill   | `skills validate <name>`      |
-| Export profile   | `skills export`               |
-| Import profile   | `skills import <file>`        |
-| Check status     | `skills status`               |
-| Verify sync      | `skills verify`               |
+| Task | Command |
+|------|---------|
+| **Search skills** | Browse https://skills.sh or `npx skills --help` |
+| **Install from skills.sh** | `npx skills add <owner>/<skill-name>` |
+| **Install specific skill** | `npx skills add anthropics/skills/docx` |
+| **List installed** | `ls ~/.ai-skills/` or `ls ./.ai-skills/` |
+| **Create new skill** | Follow skill-creator guidelines |
+| **Sync global→IDEs** | Copy from `~/.ai-skills/` to IDE paths |
+| **Validate skill** | Check SKILL.md has name + description frontmatter |
 
-## Usage Examples
+## Installing Skills (via skills.sh)
 
-**User:** "What skills do I have installed?"
+### Search Skills
 
-```bash
-python ~/.ai-skills/skill-manager/scripts/skills list --json
-```
+Browse the leaderboard at https://skills.sh to find community skills.
 
-**User:** "Find me a skill for working with Docker"
+### Install from skills.sh
 
 ```bash
-python ~/.ai-skills/skill-manager/scripts/skills search "docker"
+# Install a skill (goes to current directory by default)
+npx skills add <owner>/<skill-name>
+
+# Examples:
+npx skills add anthropics/skills/docx
+npx skills add vercel-labs/skills/find-skills
 ```
 
-**User:** "Install the docx skill from anthropics"
+### Post-Install: Choose Scope
+
+After `npx skills add`, the skill is downloaded. Then:
+
+1. **For Global**: Move to `~/.ai-skills/<skill-name>/`
+2. **For Project**: Move to `./.ai-skills/<skill-name>/`
+
+Then sync to appropriate IDE paths.
+
+## Manual Install (from GitHub)
 
 ```bash
-python ~/.ai-skills/skill-manager/scripts/skills install https://github.com/anthropics/skills/tree/main/skills/docx
+# Clone skill repo
+git clone <github-url> /tmp/skill-temp
+
+# Copy to appropriate scope
+# Global:
+cp -r /tmp/skill-temp/<skill-name> ~/.ai-skills/
+# Project:
+cp -r /tmp/skill-temp/<skill-name> ./.ai-skills/
 ```
 
-**User:** "Create a skill for formatting SQL"
+## Sync to IDEs
+
+After installing to SSOT, sync to IDE-specific paths:
 
 ```bash
-python ~/.ai-skills/skill-manager/scripts/skills create sql-formatter
+# Global sync (from ~/.ai-skills/ to ~/.claude/skills/, ~/.cursor/skills/, etc.)
+cp -r ~/.ai-skills/<skill-name> ~/.claude/skills/
+cp -r ~/.ai-skills/<skill-name> ~/.cursor/skills/
+
+# Project sync (from ./.ai-skills/ to ./.cursor/skills/)
+cp -r ./.ai-skills/<skill-name> ./.cursor/skills/
 ```
 
-**User:** "Sync my skills to all IDEs"
+## Creating Skills
 
-```bash
-python ~/.ai-skills/skill-manager/scripts/skills sync
+Follow [references/skill-creator/SKILL.md](references/skill-creator/SKILL.md) for:
+
+- SKILL.md structure (frontmatter + body)
+- Progressive disclosure pattern
+- Resource organization (scripts/, references/, assets/)
+
+### Quick Create Template
+
+```markdown
+---
+name: my-skill
+description: >-
+  What the skill does. When to use it (triggers, contexts, examples).
+---
+
+# My Skill
+
+Instructions for using the skill...
 ```
 
-**User:** "Export my skills to share with another machine"
+## Scope Flags (Legacy Scripts)
 
-```bash
-python ~/.ai-skills/skill-manager/scripts/skills export --gist
-```
-
-## Commands
-
-### skills (no args) - Interactive Menu
-
-When called without arguments, displays interactive menu:
-
-```
-╔════════════════════════════════════════════════════╗
-║         Skill Manager - Interactive Mode           ║
-╠════════════════════════════════════════════════════╣
-║ Installed Skills: 15                               ║
-║ Enabled IDEs: claude, cursor, codex, gemini        ║
-╚════════════════════════════════════════════════════╝
-
-1. List installed skills
-2. Search community skills
-3. Install a skill
-...
-```
-
-### skills search
-
-Search community skills database.
-
-```bash
-python ~/.ai-skills/skill-manager/scripts/skills search "python testing"
-```
-
-### skills install
-
-Install from GitHub URL or search results.
-
-```bash
-# From URL
-python ~/.ai-skills/skill-manager/scripts/skills install https://github.com/anthropics/skills/tree/main/skills/docx
-
-# From search
-python ~/.ai-skills/skill-manager/scripts/skills install --query "pdf" --index 1
-```
-
-### skills create
-
-Create new skill from template (follows skill-creator guidelines).
-
-```bash
-python ~/.ai-skills/skill-manager/scripts/skills create my-skill --resources scripts,references
-```
-
-### skills sync
-
-Sync skills to all enabled IDEs.
-
-```bash
-# Sync all
-python ~/.ai-skills/skill-manager/scripts/skills sync
-
-# Sync single skill
-python ~/.ai-skills/skill-manager/scripts/skills sync my-skill
-
-# Dry run
-python ~/.ai-skills/skill-manager/scripts/skills sync --dry-run
-```
-
-### skills validate
-
-Validate skills against guidelines and verify sync.
-
-```bash
-python ~/.ai-skills/skill-manager/scripts/skills validate my-skill
-```
-
-### skills export / import
-
-Export and import skill profiles for cross-machine sync.
-
-```bash
-# Export to Gist
-python ~/.ai-skills/skill-manager/scripts/skills export --gist
-
-# Import from Gist
-python ~/.ai-skills/skill-manager/scripts/skills import --gist <gist-id>
-```
-
-## Scope Flags
+If using legacy Python scripts:
 
 - `-g, --global`: Global scope (`~/.ai-skills/`)
-- `-l, --local`: Project scope (`.ai-skills/`)
+- `-l, --local`: Project scope (`./.ai-skills/`)
 
-## Error Handling
+## Validation Checklist
 
-| Error                | Solution                                  |
-| -------------------- | ----------------------------------------- |
-| git clone fails      | Check URL, network, or if repo is private |
-| No SKILL.md found    | Skill repo may be structured differently  |
-| Invalid YAML         | Show syntax error line and suggest fix    |
-| Permission denied    | Check directory permissions               |
-| Skill already exists | Ask if user wants to update or reinstall  |
-| Sync hash mismatch   | Run `skills sync --force` to overwrite    |
+- [ ] SKILL.md exists with valid YAML frontmatter
+- [ ] `name` and `description` fields present
+- [ ] Description includes trigger phrases
+- [ ] No extraneous files (README.md, CHANGELOG.md, etc.)
+- [ ] Resources in correct folders (scripts/, references/, assets/)
 
-## Configuration
+## Troubleshooting
 
-Edit `~/.ai-skills/skill-manager/config.json` to customize:
-
-- `git.auto_commit`: Enable/disable auto commit (default: true)
-- `git.auto_push`: Enable/disable auto push (default: false)
-- `sync.auto_after_install`: Auto sync after install (default: true)
-- `enabled_ides`: List of IDEs to sync to
-- `exclude_skills`: Skills to exclude from sync
-- `preserve_target_skills`: Directories to preserve in targets (e.g., Codex `.system/`)
-
-## For Creating Skills
-
-**Always refer to:** [references/skill-creator/SKILL.md](references/skill-creator/SKILL.md)
+| Issue | Solution |
+|-------|----------|
+| Skill in wrong scope | Delete from wrong location, reinstall to correct path |
+| Sync not working | Verify SSOT path matches intended scope |
+| npx skills fails | Check Node.js installed, try `npm exec skills add` |
+| Skill not triggering | Check description includes usage triggers |
