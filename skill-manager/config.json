@@ -51,7 +51,7 @@
   },
 
   "upstream": {
-    "auto_sync_on_update": true,
+    "auto_sync_on_update": false,
     "sources_dir": ".sources",
     "manifest_file": ".upstream-manifest.json"
   }

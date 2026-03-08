@@ -24,7 +24,27 @@ from .git_ops import auto_commit
 
 def _get_ssot_dir() -> Path:
     """获取 SSOT 根目录路径。"""
-    return expand_path("~/.ai-skills")
+    config = load_config()
+    return expand_path(config["source_dir"])
+
+
+def _validate_url(url: str) -> None:
+    """验证 URL 格式，仅允许安全的 git 远程协议和本地路径。
+
+    Allowed: https://, git@, and local filesystem paths.
+    Blocked: file://, ftp://, http://, ext://, and other exotic schemes.
+    Raises ValueError if the URL uses a disallowed scheme.
+    """
+    # 允许 https 和 git SSH
+    if url.startswith("https://") or url.startswith("git@"):
+        return
+    # 允许本地文件系统路径（绝对或相对）
+    if url.startswith("/") or url.startswith("./") or url.startswith("../"):
+        return
+    raise ValueError(
+        f"Invalid URL: {url!r}. "
+        "Only https://, git@, or local paths are allowed."
+    )
 
 
 def _get_upstream_config() -> dict:
@@ -120,7 +140,6 @@ def _detect_skills_prefix(source_dir: Path) -> str:
 def _detect_local_modifications(
     ssot_dir: Path,
     skill_name: str,
-    source_name: str,
     source_dir: Path,
     skills_prefix: str,
 ) -> bool:
@@ -167,6 +186,13 @@ def _detect_local_modifications(
 
 def cmd_upstream_add(url: str, name: Optional[str] = None, branch: str = "main") -> dict:
     """注册一个新的上游源并克隆到 .sources/ 目录。"""
+    # 验证 URL 协议
+    try:
+        _validate_url(url)
+    except ValueError as e:
+        print(f"[UPSTREAM] Error: {e}")
+        return {"success": False, "error": str(e)}
+
     ssot_dir = _get_ssot_dir()
     sources_dir = _get_sources_dir(ssot_dir)
     manifest = _load_manifest(ssot_dir)
@@ -288,14 +314,14 @@ def cmd_upstream_update(name: Optional[str] = None) -> dict:
             if skill_info.get("source") != src_name:
                 continue
             if _detect_local_modifications(
-                ssot_dir, skill_name, src_name, source_clone_dir, skills_prefix
+                ssot_dir, skill_name, source_clone_dir, skills_prefix
             ):
                 changed_skills.append(skill_name)
 
         if changed_skills:
             print(f"[UPSTREAM] Skills with upstream changes: {', '.join(changed_skills)}")
             # 如果配置了自动同步则重新导入
-            if upstream_cfg.get("auto_sync_on_update", True):
+            if upstream_cfg.get("auto_sync_on_update", False):
                 print(f"[UPSTREAM] Auto-syncing changed skills...")
                 cmd_upstream_import(
                     changed_skills, src_name, force=True, _skip_commit=True,
@@ -529,7 +555,7 @@ def cmd_upstream_status() -> dict:
             modified = False
             if source_clone_dir.exists():
                 modified = _detect_local_modifications(
-                    ssot_dir, skill_name, src_name, source_clone_dir, skills_prefix,
+                    ssot_dir, skill_name, source_clone_dir, skills_prefix,
                 )
 
             mod_marker = " [modified]" if modified else ""

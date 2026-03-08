@@ -260,6 +260,7 @@ else:
         print(f"{scope_label} Installing to: {dest_dir}\n")
 
         if installer_script.exists():
+            # URL is validated by install.py's _parse_github_url (domain allowlist)
             result = subprocess.run([
                 sys.executable,
                 str(installer_script),

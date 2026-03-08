@@ -366,7 +366,7 @@ class TestConflictDetection:
         # 检测修改
         source_clone_dir = ssot_dir / ".sources" / "cf-src"
         modified = _detect_local_modifications(
-            ssot_dir, "conflict-skill", "cf-src", source_clone_dir, "skills"
+            ssot_dir, "conflict-skill", source_clone_dir, "skills"
         )
 
         assert modified is True, "Should detect local modifications"
