@@ -36,15 +36,16 @@ def show_interactive_menu():
     print("7. Export profile")
     print("8. Import profile")
     print("9. Check status")
+    print("10. Upstream management")
     print("0. Exit")
     print()
-    
+
     try:
-        choice = input("Enter choice [0-9]: ").strip()
+        choice = input("Enter choice [0-10]: ").strip()
     except (KeyboardInterrupt, EOFError):
         print("\nExiting.")
         return
-    
+
     if choice == "0" or not choice:
         return
     elif choice == "1":
@@ -83,8 +84,62 @@ def show_interactive_menu():
                 cmd_import(source=path)
     elif choice == "9":
         cmd_status()
+    elif choice == "10":
+        _upstream_interactive_menu()
     else:
         print("Invalid choice.")
+
+
+def _upstream_interactive_menu():
+    """上游管理交互式子菜单。"""
+    from .upstream import (cmd_upstream_add, cmd_upstream_update,
+                           cmd_upstream_import, cmd_upstream_list,
+                           cmd_upstream_status, cmd_upstream_diff)
+
+    print("\n=== Upstream Management ===")
+    print("1. Add upstream source")
+    print("2. Update upstream sources")
+    print("3. Import skills from upstream")
+    print("4. List available skills")
+    print("5. Check status")
+    print("6. Compare differences")
+    print("0. Back")
+    print()
+
+    try:
+        choice = input("Enter choice [0-6]: ").strip()
+    except (KeyboardInterrupt, EOFError):
+        print("\nBack to main menu.")
+        return
+
+    if choice == "0" or not choice:
+        return
+    elif choice == "1":
+        url = input("Repository URL: ").strip()
+        if url:
+            name = input("Source name (Enter for auto): ").strip() or None
+            branch = input("Branch (Enter for main): ").strip() or "main"
+            cmd_upstream_add(url, name=name, branch=branch)
+    elif choice == "2":
+        name = input("Source name (Enter for all): ").strip() or None
+        cmd_upstream_update(name)
+    elif choice == "3":
+        source = input("Source name: ").strip()
+        skills_input = input("Skill names (space-separated): ").strip()
+        if source and skills_input:
+            skills = skills_input.split()
+            force = input("Force overwrite? [y/N]: ").strip().lower() == "y"
+            adopt = input("Adopt existing? [y/N]: ").strip().lower() == "y"
+            cmd_upstream_import(skills, source, force=force, adopt=adopt)
+    elif choice == "4":
+        source = input("Source name (Enter for all): ").strip() or None
+        cmd_upstream_list(source)
+    elif choice == "5":
+        cmd_upstream_status()
+    elif choice == "6":
+        skill = input("Skill name: ").strip()
+        if skill:
+            cmd_upstream_diff(skill)
 
 
 def cmd_list(scope: str = "global", project_dir: Optional[Path] = None, 
@@ -256,6 +311,7 @@ Commands:
   import    Import skills profile
   status    Check status
   commit    Git commit changes
+  upstream  Manage upstream sources
 
 Examples:
   skills                              # Interactive menu
@@ -265,6 +321,9 @@ Examples:
   skills create my-skill              # Create new skill
   skills sync                         # Sync to all IDEs
   skills validate                     # Validate all skills
+  skills upstream add <url>           # Add upstream source
+  skills upstream list                # List upstream skills
+  skills upstream import <s> --from x # Import from upstream
 """
     )
     
@@ -349,7 +408,39 @@ Examples:
     # init
     init_parser = subparsers.add_parser("init", help="Initialize project skills")
     add_scope_args(init_parser)
-    
+
+    # upstream
+    upstream_parser = subparsers.add_parser("upstream", help="Manage upstream sources")
+    upstream_sub = upstream_parser.add_subparsers(dest="upstream_command", help="Upstream command")
+
+    # upstream add
+    up_add = upstream_sub.add_parser("add", help="Add upstream source")
+    up_add.add_argument("url", help="Git repository URL")
+    up_add.add_argument("--name", help="Source name (default: derived from URL)")
+    up_add.add_argument("--branch", default="main", help="Branch (default: main)")
+
+    # upstream update
+    up_update = upstream_sub.add_parser("update", help="Update upstream sources")
+    up_update.add_argument("name", nargs="?", help="Source name (default: all)")
+
+    # upstream import
+    up_import = upstream_sub.add_parser("import", help="Import skills from upstream")
+    up_import.add_argument("skills", nargs="+", help="Skill names to import")
+    up_import.add_argument("--from", dest="source", required=True, help="Source name")
+    up_import.add_argument("--force", action="store_true", help="Force overwrite")
+    up_import.add_argument("--adopt", action="store_true", help="Adopt existing skills")
+
+    # upstream list
+    up_list = upstream_sub.add_parser("list", help="List available upstream skills")
+    up_list.add_argument("source", nargs="?", help="Source name")
+
+    # upstream status
+    upstream_sub.add_parser("status", help="Show upstream status")
+
+    # upstream diff
+    up_diff = upstream_sub.add_parser("diff", help="Compare local vs upstream")
+    up_diff.add_argument("skill", help="Skill name")
+
     args = parser.parse_args()
     json_output = getattr(args, "json", False)
     
@@ -445,6 +536,29 @@ Examples:
             print(f"\nNext steps:")
             print(f"  1. Add skills to {source_dir}/<skill-name>/SKILL.md")
             print(f"  2. Run: skills sync --local")
+
+    elif args.command == "upstream":
+        from .upstream import (
+            cmd_upstream_add, cmd_upstream_update,
+            cmd_upstream_import, cmd_upstream_list,
+            cmd_upstream_status, cmd_upstream_diff,
+        )
+        uc = getattr(args, "upstream_command", None)
+        if uc == "add":
+            cmd_upstream_add(args.url, name=args.name, branch=args.branch)
+        elif uc == "update":
+            cmd_upstream_update(args.name)
+        elif uc == "import":
+            cmd_upstream_import(args.skills, args.source,
+                               force=args.force, adopt=args.adopt)
+        elif uc == "list":
+            cmd_upstream_list(args.source)
+        elif uc == "status":
+            cmd_upstream_status()
+        elif uc == "diff":
+            cmd_upstream_diff(args.skill)
+        else:
+            upstream_parser.print_help()
 
 
 if __name__ == "__main__":

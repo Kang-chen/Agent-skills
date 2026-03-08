@@ -31,7 +31,7 @@
     "auto_after_create": false,
     "auto_after_remove": true,
     "use_symlinks": false,
-    "default_scope": "global"
+    "default_scope": "project"
   },
   
   "exclude_skills": ["skill-manager"],
@@ -48,5 +48,11 @@
   "profile": {
     "default_export_path": "~/.skills-profile.json",
     "gist_id": null
+  },
+
+  "upstream": {
+    "auto_sync_on_update": true,
+    "sources_dir": ".sources",
+    "manifest_file": ".upstream-manifest.json"
   }
 }

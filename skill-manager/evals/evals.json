@@ -1,0 +1,99 @@
+{
+  "skill_name": "skill-manager",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "List all installed global skills",
+      "expected_output": "Displays a table of skills with names and descriptions",
+      "expectations": [
+        "Output includes skill names from ~/.ai-skills/",
+        "Each skill shows its description from SKILL.md frontmatter",
+        "Skills are sorted alphabetically",
+        "skill-manager itself is excluded from the list"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Install the claude-api skill from anthropics/skills GitHub repo globally",
+      "expected_output": "Skill is downloaded, validated, and synced to all IDEs",
+      "expectations": [
+        "claude-api directory exists in ~/.ai-skills/",
+        "claude-api/SKILL.md has valid YAML frontmatter with name and description",
+        "claude-api is synced to ~/.claude/skills/",
+        "Git commit was created for the install"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Create a new test-skill with scripts and references in the current project, then validate it",
+      "expected_output": "Skill is created at project level with correct structure",
+      "expectations": [
+        "test-skill directory is created in ./.ai-skills/",
+        "SKILL.md has name and description frontmatter",
+        "SKILL.md has no extra frontmatter fields beyond name and description",
+        "scripts/ directory exists",
+        "references/ directory exists",
+        "No README.md or CHANGELOG.md was created",
+        "Validation passes with no errors",
+        "Skill is NOT synced to ~/.claude/skills/ (global)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Modify an existing project skill's SKILL.md to add a new workflow section, then verify it still follows skill-creator principles",
+      "expected_output": "Skill is modified and passes compliance checks",
+      "expectations": [
+        "SKILL.md frontmatter is preserved with name and description",
+        "Description still includes trigger keywords",
+        "SKILL.md body is under 500 lines",
+        "Any new references are properly linked from SKILL.md",
+        "Modified skill passes validation",
+        "Changes are tracked by project git"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Check if skill-manager is in sync with the GitHub upstream version",
+      "expected_output": "Report showing sync status between local and GitHub",
+      "expectations": [
+        "Compares local SKILL.md with upstream",
+        "Reports any file differences",
+        "Shows last sync timestamp"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Register anthropics/skills as upstream, import skill-creator, then check status",
+      "expected_output": "Upstream registered, skill imported, status shows correct provenance",
+      "expectations": [
+        "Upstream source is cloned to .sources/",
+        "Manifest records the source URL and commit",
+        "skill-creator files match upstream",
+        "Status command shows sync information"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Create a project skill, add scripts, sync to project IDE targets, then promote to global",
+      "expected_output": "Full project skill lifecycle with promotion",
+      "expectations": [
+        "Skill created in ./.ai-skills/",
+        "Synced to ./.claude/skills/ (project level)",
+        "NOT present in ~/.claude/skills/ before promotion",
+        "After explicit promotion, present in ~/.ai-skills/ (global SSOT)",
+        "After sync, present in ~/.claude/skills/ (global target)",
+        "Skill follows skill-creator principles throughout"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Update skill-creator from upstream and verify the references/skill-creator/ copy in skill-manager is also updated",
+      "expected_output": "Both copies are in sync after update",
+      "expectations": [
+        "skill-creator in ~/.ai-skills/ matches upstream",
+        "skill-manager/references/skill-creator/ matches the updated skill-creator",
+        "Updated skill-creator passes validation"
+      ]
+    }
+  ]
+}

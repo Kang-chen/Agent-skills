@@ -70,15 +70,16 @@ def main():
         print("7. Export profile")
         print("8. Import profile")
         print("9. Check status")
+        print("10. Upstream management")
         print("0. Exit")
         print()
-        
+
         try:
-            choice = input("Enter choice [0-9]: ").strip()
+            choice = input("Enter choice [0-10]: ").strip()
         except (KeyboardInterrupt, EOFError):
             print("\nExiting.")
             return
-        
+
         if choice == "0" or not choice:
             return
         elif choice == "1":
@@ -107,6 +108,8 @@ def main():
                 cmd_import_profile(path, scripts_dir)
         elif choice == "9":
             cmd_status(config, expand_path, get_skills_from_dir)
+        elif choice == "10":
+            cmd_upstream_menu(scripts_dir, exec_globals, config)
         else:
             print("Invalid choice.")
 
@@ -246,24 +249,31 @@ else:
     print("Skills database not found.")
 """])
 
-    def cmd_install(url, config, expand_path, scripts_dir, dest_override=None):
+    def cmd_install(url, config, expand_path, scripts_dir, dest_override=None,
+                    scope="global", project_dir=None):
         """Install a skill."""
         import subprocess
         dest_dir = dest_override or expand_path(config.get("source_dir", "~/.ai-skills"))
         installer_script = expand_path("~/.ai-skills/skill-installer/scripts/install-skill-from-github.py")
-        
+
+        scope_label = "[LOCAL]" if scope == "local" else "[GLOBAL]"
+        print(f"{scope_label} Installing to: {dest_dir}\n")
+
         if installer_script.exists():
             result = subprocess.run([
-                sys.executable, 
+                sys.executable,
                 str(installer_script),
                 "--url", url,
                 "--dest", str(dest_dir)
             ])
-            
+
             # Auto-sync after install if successful
             if result.returncode == 0 and config.get("sync", {}).get("auto_after_install", True):
-                print("\n[Auto-sync] Syncing to all IDEs...")
-                cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir)
+                print(f"\n[Auto-sync] Syncing to IDEs ({scope} scope)...")
+                if scope == "local" and project_dir:
+                    cmd_sync_local(config, expand_path, get_skills_from_dir, project_dir)
+                else:
+                    cmd_sync(config, expand_path, get_skills_from_dir, scripts_dir)
         else:
             print(f"Error: Installer script not found: {installer_script}")
             print("Please ensure skill-installer is available.")
@@ -578,6 +588,80 @@ description: [TODO: Add description]
         
         print("\n[LOCAL] Sync complete!")
 
+    def _load_upstream_module(scripts_dir, exec_globals):
+        """加载 upstream 模块到 exec_globals 命名空间。"""
+        # 加载 git_ops 模块
+        git_ops_code = open(os.path.join(scripts_dir, "git_ops.py")).read()
+        git_ops_code = git_ops_code.replace('from .utils import', '# from .utils import')
+        exec(git_ops_code, exec_globals)
+
+        # 加载 upstream 模块
+        upstream_code = open(os.path.join(scripts_dir, "upstream.py")).read()
+        upstream_code = upstream_code.replace('from .utils import', '# from .utils import')
+        upstream_code = upstream_code.replace('from .git_ops import', '# from .git_ops import')
+        upstream_code = upstream_code.replace('from .sync import', '# from .sync import')
+        exec(upstream_code, exec_globals)
+
+    def cmd_upstream_menu(scripts_dir, exec_globals, config):
+        """上游源管理交互式菜单。"""
+        print()
+        print("=== Upstream Management ===")
+        print("1. Add upstream source")
+        print("2. Update upstream sources")
+        print("3. Import skills from upstream")
+        print("4. List available skills")
+        print("5. Check status")
+        print("6. Compare differences")
+        print("0. Back")
+        print()
+
+        try:
+            choice = input("Enter choice [0-6]: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            return
+
+        if choice == "0" or not choice:
+            return
+
+        # 按需加载 upstream 模块
+        _load_upstream_module(scripts_dir, exec_globals)
+
+        if choice == "1":
+            url = input("Git repository URL: ").strip()
+            if not url:
+                return
+            name = input("Source name (Enter for auto): ").strip() or None
+            branch = input("Branch (Enter for main): ").strip() or "main"
+            exec_globals['cmd_upstream_add'](url, name=name, branch=branch)
+        elif choice == "2":
+            name = input("Source name (Enter for all): ").strip() or None
+            exec_globals['cmd_upstream_update'](name)
+        elif choice == "3":
+            source = input("Source name: ").strip()
+            if not source:
+                return
+            skills_input = input("Skill names (space-separated): ").strip()
+            if not skills_input:
+                return
+            skills_list = skills_input.split()
+            force = input("Force overwrite? (y/N): ").strip().lower() == "y"
+            adopt = input("Adopt existing? (y/N): ").strip().lower() == "y"
+            exec_globals['cmd_upstream_import'](
+                skills_list, source, force=force, adopt=adopt,
+            )
+        elif choice == "4":
+            source = input("Source name (Enter for all): ").strip() or None
+            exec_globals['cmd_upstream_list'](source)
+        elif choice == "5":
+            exec_globals['cmd_upstream_status']()
+        elif choice == "6":
+            skill = input("Skill name: ").strip()
+            if skill:
+                exec_globals['cmd_upstream_diff'](skill)
+        else:
+            print("Invalid choice.")
+
     # Parse arguments
     parser = argparse.ArgumentParser(
         description="Unified skill management for AI IDEs",
@@ -601,6 +685,10 @@ description: [TODO: Add description]
     # install
     install_parser = subparsers.add_parser("install", help="Install a skill")
     install_parser.add_argument("url", help="GitHub URL")
+    install_parser.add_argument("-g", "--global", dest="global_scope", action="store_true",
+                                help="Install to global scope (~/.ai-skills)")
+    install_parser.add_argument("-l", "--local", dest="local_scope", action="store_true",
+                                help="Install to project scope (.ai-skills)")
     
     # create
     create_parser = subparsers.add_parser("create", help="Create a new skill")
@@ -638,6 +726,38 @@ description: [TODO: Add description]
     # init (for local projects)
     init_parser = subparsers.add_parser("init", help="Initialize local skills")
     init_parser.add_argument("--project-dir", type=Path, default=None)
+
+    # upstream
+    upstream_parser = subparsers.add_parser("upstream", help="Manage upstream sources")
+    upstream_sub = upstream_parser.add_subparsers(dest="upstream_command", help="Upstream command")
+
+    # upstream add
+    up_add = upstream_sub.add_parser("add", help="Add upstream source")
+    up_add.add_argument("url", help="Git repository URL")
+    up_add.add_argument("--name", help="Source name (default: derived from URL)")
+    up_add.add_argument("--branch", default="main", help="Branch (default: main)")
+
+    # upstream update
+    up_update = upstream_sub.add_parser("update", help="Update upstream sources")
+    up_update.add_argument("name", nargs="?", help="Source name (default: all)")
+
+    # upstream import
+    up_import = upstream_sub.add_parser("import", help="Import skills from upstream")
+    up_import.add_argument("skills", nargs="+", help="Skill names to import")
+    up_import.add_argument("--from", dest="source", required=True, help="Source name")
+    up_import.add_argument("--force", action="store_true", help="Force overwrite")
+    up_import.add_argument("--adopt", action="store_true", help="Adopt existing skills")
+
+    # upstream list
+    up_list = upstream_sub.add_parser("list", help="List available upstream skills")
+    up_list.add_argument("source", nargs="?", help="Source name")
+
+    # upstream status
+    upstream_sub.add_parser("status", help="Show upstream status")
+
+    # upstream diff
+    up_diff = upstream_sub.add_parser("diff", help="Compare local vs upstream")
+    up_diff.add_argument("skill", help="Skill name")
     
     args = parser.parse_args()
     config = load_config()
@@ -650,7 +770,23 @@ description: [TODO: Add description]
     elif args.command == "search":
         cmd_search(args.query, scripts_dir)
     elif args.command == "install":
-        cmd_install(args.url, config, expand_path, scripts_dir)
+        # Determine scope: explicit flags > default_scope config
+        default_scope = config.get("sync", {}).get("default_scope", "global")
+        local_scope = getattr(args, "local_scope", False)
+        global_scope = getattr(args, "global_scope", False)
+
+        # If no explicit flag, use default_scope from config
+        if not local_scope and not global_scope:
+            local_scope = (default_scope == "project")
+
+        if local_scope:
+            project_dir = find_project_root(Path.cwd()) or Path.cwd()
+            dest_dir = project_dir / config.get("project_source_dir", ".ai-skills")
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            cmd_install(args.url, config, expand_path, scripts_dir,
+                       dest_override=dest_dir, scope="local", project_dir=project_dir)
+        else:
+            cmd_install(args.url, config, expand_path, scripts_dir, scope="global")
     elif args.command == "create":
         cmd_create(args.name, config, expand_path, scripts_dir)
     elif args.command == "sync":
@@ -684,6 +820,28 @@ description: [TODO: Add description]
             print(f"\nNext steps:")
             print(f"  1. Add skills to {local_source}/<skill-name>/SKILL.md")
             print(f"  2. Run: skills sync --local")
+    elif args.command == "upstream":
+        # 加载上游管理模块
+        _load_upstream_module(scripts_dir, exec_globals)
+
+        uc = getattr(args, "upstream_command", None)
+        if uc == "add":
+            exec_globals['cmd_upstream_add'](args.url, name=args.name, branch=args.branch)
+        elif uc == "update":
+            exec_globals['cmd_upstream_update'](args.name)
+        elif uc == "import":
+            exec_globals['cmd_upstream_import'](
+                args.skills, args.source,
+                force=args.force, adopt=args.adopt,
+            )
+        elif uc == "list":
+            exec_globals['cmd_upstream_list'](args.source)
+        elif uc == "status":
+            exec_globals['cmd_upstream_status']()
+        elif uc == "diff":
+            exec_globals['cmd_upstream_diff'](args.skill)
+        else:
+            print("Usage: skills upstream {add|update|import|list|status|diff}")
 
 
 if __name__ == "__main__":
