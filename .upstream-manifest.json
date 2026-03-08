@@ -1,5 +1,39 @@
 {
   "version": "1.0",
-  "sources": {},
-  "skills": {}
+  "sources": {
+    "anthropic-skills": {
+      "url": "https://github.com/anthropics/skills",
+      "branch": "main",
+      "skills_prefix": "skills",
+      "last_pulled_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
+      "last_pulled_at": "2026-03-08T11:41:05.184481+00:00",
+      "added_at": "2026-03-08T11:41:05.184481+00:00"
+    }
+  },
+  "skills": {
+    "doc-coauthoring": {
+      "source": "anthropic-skills",
+      "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
+      "synced_at": "2026-03-08T11:41:53.329903+00:00",
+      "adopted": true
+    },
+    "docx": {
+      "source": "anthropic-skills",
+      "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
+      "synced_at": "2026-03-08T11:41:53.329903+00:00",
+      "adopted": true
+    },
+    "pdf": {
+      "source": "anthropic-skills",
+      "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
+      "synced_at": "2026-03-08T11:41:53.329903+00:00",
+      "adopted": true
+    },
+    "pptx": {
+      "source": "anthropic-skills",
+      "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
+      "synced_at": "2026-03-08T11:41:53.329903+00:00",
+      "adopted": true
+    }
+  }
 }
