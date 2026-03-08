@@ -20,20 +20,20 @@
     "docx": {
       "source": "anthropic-skills",
       "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
-      "synced_at": "2026-03-08T11:41:53.329903+00:00",
-      "adopted": true
+      "synced_at": "2026-03-08T11:42:59.897412+00:00",
+      "adopted": false
     },
     "pdf": {
       "source": "anthropic-skills",
       "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
-      "synced_at": "2026-03-08T11:41:53.329903+00:00",
-      "adopted": true
+      "synced_at": "2026-03-08T11:42:59.897412+00:00",
+      "adopted": false
     },
     "pptx": {
       "source": "anthropic-skills",
       "synced_commit": "b0cbd3df1533b396d281a6886d5132f623393a9c",
-      "synced_at": "2026-03-08T11:41:53.329903+00:00",
-      "adopted": true
+      "synced_at": "2026-03-08T11:42:59.897412+00:00",
+      "adopted": false
     }
   }
 }
