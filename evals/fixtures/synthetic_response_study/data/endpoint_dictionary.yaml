@@ -1,0 +1,17 @@
+schema_version: 1
+analysis_unit: sample
+endpoint: response_score
+endpoint_type: continuous
+groups:
+  - Control
+  - Treatment
+allowed_claims:
+  - descriptive
+  - association
+forbidden_claims:
+  - causal
+  - clinical_generalization
+expected_arithmetic:
+  Control_mean: 1.0000
+  Treatment_mean: 1.5833
+  difference: 0.5833

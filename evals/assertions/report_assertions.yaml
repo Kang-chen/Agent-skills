@@ -1,0 +1,24 @@
+schema_version: 1
+case_assertions:
+  - case_id: synthetic-response-report
+    prompt_ids: [report.synthetic-response.v1]
+    assertion_ids:
+      - chinese-canonical-markdown
+      - english-figure-text
+      - exact-group-arithmetic
+      - association-claim-ceiling
+      - stable-source-map
+      - explicit-evidence-gaps
+report_requirements:
+  canonical_format: markdown
+  report_language: zh
+  report_language_source: user_explicit
+  figure_text_language: en
+  claim_ceiling: association
+  required_values:
+    Control_mean: 1.0000
+    Treatment_mean: 1.5833
+    difference: 0.5833
+  forbidden_wording:
+    - causal
+    - clinical_generalization

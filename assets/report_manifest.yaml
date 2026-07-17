@@ -1,0 +1,73 @@
+schema_version: 1
+core:
+  report_id: draft-report
+  mode: new
+  canonical_format: markdown
+  canonical_report: report.md
+  report_language: undetermined
+  report_language_source: not_resolved
+  existing_report_language: not_applicable
+  language_conflict_disposition: not_applicable
+scope:
+  story_mode: figure_led
+  required_record_ids: []
+  default_record_ids: []
+  optional_record_ids: []
+claim_policy:
+  maximum_claim_level: association
+  causal_claims_allowed: false
+  high_risk_review_required: true
+preflight:
+  target_checkout: .
+  canonical_report_exists: false
+  gaps: []
+sources: []
+reproducibility:
+  commands: []
+  implementation_entries: []
+  environment_records: []
+traceability:
+  report_locator_format: report.md#stable-anchor
+  explicit_anchor_syntax: '<a id="stable-anchor"></a>'
+  require_explicit_anchors: true
+validation:
+  deterministic:
+    status: not_run
+    candidate_status: working
+    issue_codes: []
+  reviews:
+    claim_coverage:
+      requirement: required
+      status: not_run
+      locator: not_available
+    science:
+      requirement: derived
+      status: not_run
+      locator: not_available
+    fresh_reader:
+      requirement: required
+      status: not_run
+      locator: not_available
+    visual:
+      requirement: derived
+      status: not_run
+      locator: not_available
+planned_vs_actual:
+  completed: []
+  excluded_hypotheses: []
+  limitations: []
+  open_items:
+    - open_item_id: replace-seed-open-item
+      kind: next_step
+      affected_record_ids: [draft-record]
+      status: open
+      action_or_condition: Replace this seed item with the real next action.
+derived_format_handoff:
+  requested: false
+  format: not_applicable
+  report_language: undetermined
+  derived_language: not_applicable
+  acceptance_status: not_applicable
+critical_decisions: []
+overrides: []
+status: working

@@ -1,0 +1,56 @@
+schema_version: 1
+fixture_id: synthetic-response-study
+fixture_root: .
+marker: fixtures/synthetic_response_study/SYNTHETIC_EVAL_ONLY.yaml
+prompt_sha256:
+  report_case.yaml: 1534e326960cf56954c9f68f256ed71dd52903cd67554b56d1da7798d8b40dc3
+  pressure_cases.yaml: 71786142791f63d6df827fbd4afc280bd429cd33170320b1a38edb31f5bf13d8
+  trigger_cases.yaml: 3a545055013fd3280db5d4c46d683bd0e4248ad5750f08aae31890de50af9d58
+  wording_cases.yaml: 3ebd552c7b60dbde5d67899f8c5e6f34ad4370557aa0ac6726b95e43d092ad39
+canonical_prompt_sha256:
+  report.synthetic-response.v1: 8b4069f29e0771461cf47eca40b978467d21868eca180db583cfef1b513196a4
+  pressure.source-gap.v1: 1d0be0bc5aca01baf8d0b335e1a3077322a5912272283e1833ada004be3daff7
+  pressure.disputed-null.v1: 08d3c25b820278a5ac86c1fbeb935897c4e643f53b3fcee55abcdf76ec29b4f5
+  pressure.language-docx.v1: 4bb6e6d4de44f8e477c4a8a25e33241ed25e95dcfc024562ad984921dae6f1ad
+  pressure.manual-automation.v1: 3f6b380e67e7742781d9b8c12ad8850d5ab27a4f127062c2279fc8210cff9065
+  trigger.substantive-new-report.v1: 2091016f9431ac277d41ffc46a62ac2db387d611cd97b9c31c1e1789a45c427a
+  trigger.substantive-revise.v1: 2e4bce609ee3a1380202fb963cd675566e3c1845ff69675fe9cd513e321ba4c9
+  trigger.table-led.v1: 078123090fb887c2f465703781d9d8d6594000370f752cd7e0117ac4660baf73
+  near-miss.single-figure.v1: 00c9056810c99918d8bc0cba39d27db2e12ea737a96ce8f68eb8c98469d06618
+  near-miss.single-doi.v1: 8056b3973545222e0a7c05330beca59435a94121d278a0e2fca086ec88283110
+  near-miss.one-line-polish.v1: 5f04a098608f7f497edaeb729ee8444b0ef733bcaf52b3b582210efb827184c1
+  near-miss.docx-conversion.v1: 208967fb7e316cbdf6fa84eb8e8f5e1e66d0df948189db490a5976b2be9d1415
+  near-miss.report-audit.v1: f70a24904dc2aad2ab602b97a2d4d3dc83a7f740ef2f2ebd915e42ffa130a2d2
+  near-miss.pr-review.v1: 4f9934c6725fc0dfd43d764e0a3a670a2154ecbb3a6eb814a15ecb990c5cc7e9
+  wording.description-trigger.v1: b40f3f69e84f732c94f6d62f450a5209161dc2acdfb1675b1cdc079124edabae
+  wording.oid-compatibility.v1: 6784e0253cd6a8d6538cb0283d3e679d6b294c18bf4cc7cfa96e1e8bfd6c64a0
+  wording.reader-glossary.v1: f697020996304d10cfcb9d12dc6e22b1924e405f7cea349946045285288947fd
+registered_input:
+  locator: fixtures/synthetic_response_study/data/response_by_sample.csv
+  sha256: bacb050050eeacaeeda1ab955c65ba5ad7537ac68a2866f11fdf5b7561c640f8
+  header: [sample_id, group, response_score]
+  ordered_row_count: 24
+non_figure_outputs:
+  tables/group_summary.csv:
+    sha256: 07ad6dd34d870bda9b4c63e6b6da111e792bd47b4b14db56c8bb4933cb766d64
+    header: [group, n, mean_response_score]
+    ordered_rows:
+      - [Control, "12", "1.0000"]
+      - [Treatment, "12", "1.5833"]
+  plot_data/response_by_group.csv:
+    sha256: 07ad6dd34d870bda9b4c63e6b6da111e792bd47b4b14db56c8bb4933cb766d64
+    header: [group, n, mean_response_score]
+    ordered_rows:
+      - [Control, "12", "1.0000"]
+      - [Treatment, "12", "1.5833"]
+figure_identity:
+  seed: 42
+  language: en
+  font_family: DejaVu Sans
+  backend: Agg
+  external_assets: false
+  formats: [png, pdf]
+  labels:
+    x_axis: Group
+    y_axis: Mean response score
+    title: Synthetic response by group

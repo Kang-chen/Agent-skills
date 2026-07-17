@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence-Backed Scientific Report"
+  short_description: "Build traceable scientific Markdown reports"
+  default_prompt: "Use $evidence-backed-scientific-report to create or substantively revise a source-traceable scientific Markdown report."
