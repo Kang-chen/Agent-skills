@@ -11,7 +11,7 @@
 5. Blind transcript 只能由 versioned adapter 投影 canonical safe summaries；任何 treatment-provenance disclosure 都是 `unblindable`。
 6. `artifact_paths`、`artifact_sha256` 与 closed `artifact_roles` 必须 key-set 一致。
 7. Reader-facing `report.md` 不得包含内部 record marker；每个 report-critical 主张所在小节必须使用对应来源的 numeric anchor reference。
-8. `<a id="references"></a>` 必须唯一且 References 必须是最后一个正式章节；ATX 与 Setext heading 都参与终端章节判定。条目按出现顺序连续编号为 `1..N`，正文 reference 必须解析到编号匹配的 `ref-*` 条目。HTML comment 或任意前导缩进的 fenced code（含 blockquote/list 容器）不计作可见引用；closing 只能消费 opener 已记录的 blockquote 上下文，代码内容中新出现的 marker 不得提前关闭 fence。
+8. `<a id="references"></a>` 必须唯一且 References 必须是最后一个正式章节；ATX 与 Setext heading 都参与终端章节判定。条目按出现顺序连续编号为 `1..N`，正文 reference 必须解析到编号匹配的 `ref-*` 条目。HTML comment 或任意前导缩进的 fenced code（含 blockquote/list 容器）不计作可见引用；closing 只能消费 opener 已记录的 blockquote 上下文，代码内容中新出现的 marker 不得提前关闭 fence，closing 缩进仅允许 opener base 到 base+3 列。
 9. `manifests/evidence.tsv` 必须作为持久审查 sidecar 保留，并通过 `report_locator`、`source_ids` 和 manifest `report_reference` 与正文闭环。
 
 ## Reader-facing reference evidence

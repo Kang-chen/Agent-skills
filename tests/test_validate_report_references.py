@@ -487,6 +487,94 @@ class ValidateReportReferenceTests(unittest.TestCase):
                 self.assertNotIn("[1](#ref-hidden)", visible_text)
                 self.assertIn("[2](#ref-visible)", visible_text)
 
+    def test_top_level_fence_rejects_overindented_pure_closers(self):
+        invalid_indents = ("    ", "     ", "\t")
+        for invalid_indent in invalid_indents:
+            with self.subTest(invalid_indent=repr(invalid_indent)):
+                report_text = (
+                    "```markdown\n"
+                    f"{invalid_indent}```\n"
+                    "[1](#ref-hidden-a)\n"
+                    f"{invalid_indent}```\n"
+                    "[2](#ref-hidden-b)\n"
+                    "```\n"
+                    "Visible [3](#ref-visible).\n"
+                )
+
+                visible_text = self.reader_visible(report_text)
+
+                self.assertNotIn("[1](#ref-hidden-a)", visible_text)
+                self.assertNotIn("[2](#ref-hidden-b)", visible_text)
+                self.assertIn("[3](#ref-visible)", visible_text)
+
+    def test_top_level_fence_accepts_zero_to_three_space_closer(self):
+        valid_indents = ("", " ", "  ", "   ")
+        for opener_indent in valid_indents:
+            for closer_indent in valid_indents:
+                with self.subTest(
+                    opener_indent=repr(opener_indent),
+                    closer_indent=repr(closer_indent),
+                ):
+                    report_text = (
+                        f"{opener_indent}```markdown\n"
+                        "[1](#ref-hidden)\n"
+                        f"{closer_indent}```\n"
+                        "Visible [2](#ref-visible).\n"
+                    )
+
+                    visible_text = self.reader_visible(report_text)
+
+                    self.assertNotIn("[1](#ref-hidden)", visible_text)
+                    self.assertIn("[2](#ref-visible)", visible_text)
+
+    def test_list_container_fence_accepts_content_indent_closer(self):
+        fenced_examples = (
+            (
+                "- ```markdown\n"
+                "  [1](#ref-hidden)\n"
+                "  ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "100. ```markdown\n"
+                "     [1](#ref-hidden)\n"
+                "     ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "> - ```markdown\n"
+                ">   [1](#ref-hidden)\n"
+                ">   ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "100. item\n"
+                "     ```markdown\n"
+                "     [1](#ref-hidden)\n"
+                "     ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "- ```markdown\n"
+                "  [1](#ref-hidden)\n"
+                "     ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "100. item\n"
+                "     ```markdown\n"
+                "     [1](#ref-hidden)\n"
+                "        ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+        )
+        for fenced_example in fenced_examples:
+            with self.subTest(fenced_example=fenced_example):
+                visible_text = self.reader_visible(fenced_example)
+
+                self.assertNotIn("[1](#ref-hidden)", visible_text)
+                self.assertIn("[2](#ref-visible)", visible_text)
+
     def test_comment_syntax_in_fenced_code_does_not_hide_later_references(self):
         report_text = self.valid_report().replace(
             "# Report\n\n",

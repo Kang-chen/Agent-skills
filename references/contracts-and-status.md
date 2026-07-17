@@ -82,7 +82,11 @@ The References heading may use ATX or Setext syntax. For conservative
 validation, a fence after any leading whitespace is masked as code, including
 wide ordered-list continuations and nested list containers. A closing fence
 consumes only the opener's blockquote context; new list or blockquote markers
-inside code are literal content, not container prefixes.
+inside code are literal content, not container prefixes. Closing indent is
+limited to the opener base through base plus three columns. The base is zero
+for top-level openers indented zero through three columns, the consumed content
+indent for explicit list markers, or the opener indent for conservative wide
+list continuations.
 Reader-facing citations may appear in any earlier report section. Citations in
 HTML comments or fenced code, including blockquote/list container fences, do
 not satisfy the join.

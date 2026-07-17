@@ -187,6 +187,10 @@ class SkillReferenceContractTests(unittest.TestCase):
             "closing fence consumes only the opener's blockquote context",
             combined_contract,
         )
+        self.assertIn(
+            "closing indent is limited to the opener base through base plus three columns",
+            combined_contract,
+        )
 
     def test_fresh_reader_reviews_are_self_contained_and_reference_aware(self):
         claim_review_match = re.search(
@@ -237,6 +241,10 @@ class SkillReferenceContractTests(unittest.TestCase):
         self.assertEqual(
             "opener_blockquote_context_only",
             reference_requirements["fenced_code_close_policy"],
+        )
+        self.assertEqual(
+            "opener_base..opener_base_plus_3_columns",
+            reference_requirements["fenced_code_closing_indent_policy"],
         )
 
         sidecar_requirements = requirements["persistent_sidecars"]
