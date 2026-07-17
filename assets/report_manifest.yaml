@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 core:
   report_id: draft-report
   mode: new
@@ -30,6 +30,10 @@ traceability:
   report_locator_format: report.md#stable-anchor
   explicit_anchor_syntax: '<a id="stable-anchor"></a>'
   require_explicit_anchors: true
+  reference_link_format: '[N](#ref-stable-anchor)'
+  reference_anchor_syntax: '<a id="ref-stable-anchor"></a>'
+  reference_section_locator: report.md#references
+  require_source_references: true
 validation:
   deterministic:
     status: not_run

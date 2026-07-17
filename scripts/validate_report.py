@@ -86,6 +86,9 @@ REFERENCE_ENTRY = re.compile(
     r'(?P<number>[1-9][0-9]*)\.[ \t]+(?P<text>\S.*)$'
 )
 INTERNAL_EVIDENCE_MARKER = re.compile(r"\[E:[^\]\n]+\]")
+SOURCE_REPORT_REFERENCE = re.compile(
+    r"report\.md#ref-[a-z0-9]+(?:-[a-z0-9]+)*"
+)
 FENCED_CODE_START = re.compile(
     r"^[ ]{0,3}(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
 )
@@ -182,6 +185,14 @@ def _resolved_path(package_root: Path, locator: str) -> Path | None:
 
 def _validate_manifest_shape(manifest: dict[str, Any]) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
+    if manifest.get("schema_version") != 2:
+        issues.append(
+            _issue(
+                "manifest.schema_version_invalid",
+                "Reader-facing reference reports require schema_version 2",
+                "manifest:schema_version",
+            )
+        )
     for block in sorted(REQUIRED_MANIFEST_BLOCKS - set(manifest)):
         issues.append(
             _issue(
@@ -224,6 +235,10 @@ def _validate_manifest_shape(manifest: dict[str, Any]) -> list[ValidationIssue]:
         "report_locator_format": "report.md#stable-anchor",
         "explicit_anchor_syntax": '<a id="stable-anchor"></a>',
         "require_explicit_anchors": True,
+        "reference_link_format": "[N](#ref-stable-anchor)",
+        "reference_anchor_syntax": '<a id="ref-stable-anchor"></a>',
+        "reference_section_locator": "report.md#references",
+        "require_source_references": True,
     }
     if traceability != expected_traceability:
         issues.append(
@@ -521,6 +536,7 @@ def _source_index(
     package_root: Path,
 ) -> tuple[dict[str, dict[str, Any]], list[ValidationIssue]]:
     index: dict[str, dict[str, Any]] = {}
+    report_reference_owners: dict[str, str] = {}
     issues: list[ValidationIssue] = []
     sources = manifest.get("sources", [])
     if not isinstance(sources, list):
@@ -543,6 +559,41 @@ def _source_index(
         identity = source.get("identity")
         required = _manifest_ids(source.get("required_for_record_ids"))
         source_locator = source.get("locator")
+        report_reference = source.get("report_reference")
+        reference_missing = report_reference is None or (
+            isinstance(report_reference, str) and report_reference in EMPTY_VALUES
+        )
+        if reference_missing:
+            if required:
+                issues.append(
+                    _issue(
+                        "source.report_reference_required",
+                        f"Report-critical source needs a report reference: {source_id}",
+                        locator,
+                    )
+                )
+        elif not isinstance(report_reference, str) or (
+            SOURCE_REPORT_REFERENCE.fullmatch(report_reference) is None
+        ):
+            issues.append(
+                _issue(
+                    "source.report_reference_invalid",
+                    "Source report reference must use report.md#ref-stable-anchor",
+                    locator,
+                )
+            )
+        else:
+            previous_source_id = report_reference_owners.get(report_reference)
+            if previous_source_id is not None and previous_source_id != source_id:
+                issues.append(
+                    _issue(
+                        "source.report_reference_duplicate",
+                        f"Source report reference is duplicated: {report_reference}",
+                        locator,
+                    )
+                )
+            else:
+                report_reference_owners[report_reference] = source_id
         if availability not in {"available", "restricted", "missing"}:
             issues.append(_issue("source.availability_invalid", "Invalid source availability", locator))
         if availability == "missing" or identity in EMPTY_VALUES:

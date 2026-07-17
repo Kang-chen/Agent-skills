@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import os
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import tempfile
 from typing import Any, Sequence
@@ -25,6 +26,7 @@ class SourceRecord:
     locator: str
     identity: str
     availability: str
+    report_reference: str
     required_for_record_ids: tuple[str, ...]
 
 
@@ -54,6 +56,18 @@ def stable_source_id(locator: str) -> str:
     normalized = _normalize_locator(locator)
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
     return f"SRC-{digest}"
+
+
+def stable_reference_anchor(source_id: str) -> str:
+    """Return the stable reference anchor for one source ID."""
+
+    value = source_id.casefold()
+    if value.startswith("src-"):
+        value = value[4:]
+    slug = re.sub(r"[^a-z0-9]+", "-", value).strip("-")
+    if not slug:
+        raise ValueError("Source ID cannot produce a reference anchor")
+    return f"ref-{slug}"
 
 
 def _read_yaml_mapping(path: Path) -> dict[str, Any]:
@@ -228,6 +242,10 @@ def inventory_sources(
     for locator in sorted(locators):
         prior = existing.get(locator, {})
         source_id = str(prior.get("source_id") or stable_source_id(locator))
+        report_reference = str(
+            prior.get("report_reference")
+            or f"report.md#{stable_reference_anchor(source_id)}"
+        )
         source_path = _resolve_source(target_checkout, locator)
         if source_path.exists():
             availability = str(prior.get("availability") or "available")
@@ -245,9 +263,18 @@ def inventory_sources(
                 locator=locator,
                 identity=identity,
                 availability=availability,
+                report_reference=report_reference,
                 required_for_record_ids=required_by_source.get(source_id, ()),
             )
         )
+
+    seen_report_references: set[str] = set()
+    for record in records:
+        if record.report_reference in seen_report_references:
+            raise ValueError(
+                f"Duplicate report reference: {record.report_reference}"
+            )
+        seen_report_references.add(record.report_reference)
 
     registered_ids = {record.source_id for record in records}
     for orphan_id in sorted(set(required_by_source) - registered_ids):
