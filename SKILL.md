@@ -54,8 +54,10 @@ null, or inconclusive.
    never conceal them to meet a deadline.
 2. **Inventory:** run `scripts/inventory_sources.py` in dry-run mode, inspect
    the result, then use `--write` to update only manifest source/preflight
-   blocks. Register every report-critical source in `evidence.tsv` and preserve
-   the manifest source's stable `report_reference`.
+   blocks. Inventory sources in the manifest, then register report-critical
+   evidence records in `evidence.tsv`. For each evidence row, set `source_ids`
+   to the IDs of its supporting manifest sources and preserve each manifest
+   source's stable `report_reference`.
 3. **Plan the story:** default to Figure-first; use a Table-led story when the
    evidence is genuinely tabular. Every main Figure or Table answers a concrete
    question and links its source IDs, generation entry, plot data or

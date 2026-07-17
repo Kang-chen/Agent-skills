@@ -61,7 +61,12 @@ Table the same question, source, generation, boundary, locator, and QA links.
 
 ## Fresh-reader check
 
-Ask an independent reader to locate six items: core question, answer, main
+Give an independent reader only the raw report text. Confirm that the raw
+report shows no internal `record_id`, every numeric reference resolves to a
+unique, non-empty, reader-understandable source description, and the sources
+and conclusions are understandable without opening the manifest or
+`evidence.tsv`. Ask the reader to locate six items: core question, answer, main
 evidence, inspection/reproduction entrypoint, limitations, and current
 done/not-done/next status. Record missing or ambiguous locators. A checklist of
-present headings is not evidence that the story is understandable.
+present headings is not evidence that the story is understandable. Claim
+coverage and the validator remain responsible for the machine joins.

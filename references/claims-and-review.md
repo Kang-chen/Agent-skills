@@ -51,8 +51,13 @@ that justified exclusion.
    alternatives, claim level, and null interpretation. Require it for
    report-critical causal/mechanistic/clinical/generalization/recommendation or
    disputed claims.
-3. **Fresh-reader review:** check that a reader can find the question, answer,
-   evidence, inspection path, limits, and status.
+3. **Fresh-reader review:** use only the raw report text. Confirm that the raw
+   report shows no internal `record_id`, every numeric reference resolves to a
+   unique, non-empty, reader-understandable source description, and the sources
+   and conclusions are understandable without opening the manifest or
+   `evidence.tsv`. Also check that the reader can find the question, answer,
+   evidence, inspection path, limits, and status. Claim coverage and the
+   validator, not the fresh-reader review, check the machine joins.
 4. **Visual review:** inspect actual main Figures and record the viewed files.
 5. **Style review:** after evidence and claims are frozen, apply `stop-slop`.
    Preserve numbers, direction, hedging, boundaries, limitations, terminology,
