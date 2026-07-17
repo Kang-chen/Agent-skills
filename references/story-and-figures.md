@@ -30,15 +30,23 @@ The slots need not be visible subheadings. Preserve negative, null, disputed,
 and excluded hypotheses in the reader path; do not remove them because they
 make the story less attractive.
 
+Every report-critical question block includes the corresponding source
+reference for each source joined through its evidence rows. Write it as
+`[N](#ref-stable-anchor)`, using the stable target from the manifest source's
+`report_reference`; let `N` follow the source's display order in References.
+This keeps the reader path self-contained while the evidence sidecar retains
+the claim-level audit relationships.
+
 ## Figure-first default
 
 Each main Figure has a card in `evidence.tsv` containing its question,
 comparison, analysis unit, sample count, uncertainty, encoding, final size,
 save target, source IDs, generation entry, artifact path, report locator, claim
 boundary, and QA status. Link the Figure in Markdown and link or name its plot
-data and implementation path in nearby prose. A Figure is not complete until
-someone inspects the rendered artifact for axes, direction, legend, color,
-overlap, type size, and caption consistency.
+data and implementation path in nearby prose. In that same report section,
+include the numeric source references required by the Figure card's source
+IDs. A Figure is not complete until someone inspects the rendered artifact for
+axes, direction, legend, color, overlap, type size, and caption consistency.
 
 Use `scientific-visualization` during Figure execution for measured-data
 Figures. Keep its publication-quality and accessibility checks, while following

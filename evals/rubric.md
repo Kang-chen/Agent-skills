@@ -10,6 +10,16 @@
 4. Worker private audit ledger 与 blind transcript 必须分别存在且 hash-bound。
 5. Blind transcript 只能由 versioned adapter 投影 canonical safe summaries；任何 treatment-provenance disclosure 都是 `unblindable`。
 6. `artifact_paths`、`artifact_sha256` 与 closed `artifact_roles` 必须 key-set 一致。
+7. Reader-facing `report.md` 不得包含内部 record marker；每个 report-critical 主张所在小节必须使用对应来源的 numeric anchor reference。
+8. `<a id="references"></a>` 必须存在，每个正文 reference 必须解析到唯一、编号匹配的 `ref-*` References 条目。
+9. `manifests/evidence.tsv` 必须作为持久审查 sidecar 保留，并通过 `report_locator`、`source_ids` 和 manifest `report_reference` 与正文闭环。
+
+## Reader-facing reference evidence
+
+评分证据必须同时展示 reader contract 和 audit contract：正文引用形如
+`[N](#ref-stable-anchor)`，References 定义同一稳定锚点；`evidence.tsv` 保留
+内部 `record_id` 和 claim-level relationships，但普通读者无需打开该 sidecar
+即可理解报告。仅有可读 References 或仅有 evidence ledger 均不足以通过。
 
 ## Pressure disposition
 

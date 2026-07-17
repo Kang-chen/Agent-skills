@@ -15,9 +15,11 @@ Do not expand AUC, GO, or KEGG by default.
 <a id="primary-answer"></a>
 ## What is the primary answer and strongest evidence?
 
-State the main answer, the Figure/Table evidence ID, and the boundary in plain
-language. Place the main Figure or Table here and link its source data,
-generation entry, implementation path, and evidence record.
+State the main answer, the strongest Figure/Table evidence, and the boundary in
+plain language. Support each report-critical statement with its reader-facing
+source reference, for example [1](#ref-source-example). Place the main Figure or
+Table here and link its source data, generation entry, and implementation path.
+Keep the claim-level evidence record in the review sidecar.
 
 <a id="reader-inspection"></a>
 ## How can a reader inspect or reproduce the evidence?
@@ -50,7 +52,18 @@ unresolved work, and next actions.
 Record inputs, analysis units, parameters, environment or version evidence,
 generation commands, output paths, and any derived-format handoff.
 
-## References or appendix (only when needed)
+<a id="references"></a>
+## References
 
-Include verified literature and supporting detail that would otherwise obscure
-the main reader path.
+Use the display number assigned by References and the stable anchor from the
+manifest source's `report_reference`. Replace this example with a complete,
+reader-understandable source description.
+
+<a id="ref-source-example"></a>
+1. Source author or organization. *Source title*. Stable locator or publication
+   details.
+
+## Appendix (only when needed)
+
+Put supporting detail here only when it would otherwise obscure the main reader
+path.

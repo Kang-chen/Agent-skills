@@ -4,7 +4,8 @@ Register report-critical takeaways, main Figure/Table observations,
 decision-critical numbers, negative/null/inconclusive results, excluded
 hypotheses, decisions, and disputed or restricted-source claims in
 `evidence.tsv`. Reuse one record ID when prose repeats the same claim. Do not
-create a new row for every sentence.
+create a new row for every sentence. The ledger's `record_id` is for review and
+validation; report prose cites sources with reader-facing numeric references.
 
 ## Observation, interpretation, decision
 
@@ -40,7 +41,12 @@ that justified exclusion.
 ## Separate review channels
 
 1. **Claim coverage:** compare Summary, main Results, conclusion, and
-   decision-critical captions against evidence IDs. Record missing locators.
+   decision-critical captions against both the reader-facing numeric reference
+   and the evidence ledger mapping. For every report-critical row, follow
+   `report_locator` to its section, `source_ids` to manifest sources, and each
+   source's `report_reference` to the References entry. Confirm that the
+   located section contains the corresponding numeric reference and record any
+   missing locator, source join, link, or References entry.
 2. **Science review:** assess design, analysis unit, leakage, statistics,
    alternatives, claim level, and null interpretation. Require it for
    report-critical causal/mechanistic/clinical/generalization/recommendation or
