@@ -35,6 +35,7 @@ report_requirements:
     fenced_code_close_policy: ordered_opener_container_context_only
     fenced_code_container_state: ordered_immutable_sequence
     fenced_code_closing_indent_policy: opener_base..opener_base_plus_3_columns
+    fenced_code_tab_policy: expand_entire_line_from_absolute_column_0_to_4_column_stops
     non_reader_visible_contexts:
       - html_comment
       - fenced_code

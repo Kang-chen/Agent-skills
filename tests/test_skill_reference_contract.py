@@ -191,6 +191,10 @@ class SkillReferenceContractTests(unittest.TestCase):
             "closing indent is limited to the opener base through base plus three columns",
             combined_contract,
         )
+        self.assertIn(
+            "opener and closer lines expand tabs from absolute column zero before container parsing",
+            combined_contract,
+        )
 
     def test_fresh_reader_reviews_are_self_contained_and_reference_aware(self):
         claim_review_match = re.search(
@@ -249,6 +253,10 @@ class SkillReferenceContractTests(unittest.TestCase):
         self.assertEqual(
             "opener_base..opener_base_plus_3_columns",
             reference_requirements["fenced_code_closing_indent_policy"],
+        )
+        self.assertEqual(
+            "expand_entire_line_from_absolute_column_0_to_4_column_stops",
+            reference_requirements["fenced_code_tab_policy"],
         )
 
         sidecar_requirements = requirements["persistent_sidecars"]

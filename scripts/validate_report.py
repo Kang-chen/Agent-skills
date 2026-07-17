@@ -326,6 +326,7 @@ def _mask_markdown_source(source: str) -> str:
 def _fenced_code_spec(source_line: str) -> FencedCodeSpec | None:
     """Return syntax and ordered containers for a valid opening line."""
 
+    source_line = source_line.expandtabs(4)
     content, containers = _markdown_container_context(source_line)
     opening = FENCED_CODE_START.fullmatch(content)
     if opening is None:
@@ -410,7 +411,7 @@ def _is_fenced_code_close(
 ) -> bool:
     """Close only after consuming the opener's ordered container context."""
 
-    content = source_line
+    content = source_line.expandtabs(4)
     for container in containers:
         if container.kind == "list":
             remaining = _consume_indent_columns(

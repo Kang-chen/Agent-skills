@@ -622,15 +622,21 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
     def test_container_closer_respects_tab_column_boundaries(self):
         invalid_tab_closer = (
-            "- ```markdown\n"
+            "100. ```markdown\n"
             "\t```\n"
             "[1](#ref-hidden-a)\n"
             "\t```\n"
             "[2](#ref-hidden-b)\n"
-            "  ```\n"
+            "     ```\n"
             "Visible [3](#ref-visible).\n"
         )
         valid_tab_closers = (
+            (
+                "- ```markdown\n"
+                "\t[1](#ref-hidden)\n"
+                "\t```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
             (
                 "-\t```markdown\n"
                 "\t[1](#ref-hidden)\n"
@@ -652,6 +658,58 @@ class ValidateReportReferenceTests(unittest.TestCase):
         for fenced_example in valid_tab_closers:
             with self.subTest(fenced_example=fenced_example):
                 visible_text = self.reader_visible(fenced_example)
+                self.assertNotIn("[1](#ref-hidden)", visible_text)
+                self.assertIn("[2](#ref-visible)", visible_text)
+
+    def test_nested_tab_uses_absolute_columns_for_fake_and_real_closers(self):
+        report_text = (
+            "- -\t```md\n"
+            "        ```\n"
+            "\t[1](#ref-hidden-a)\n"
+            "        ```\n"
+            "\t[2](#ref-hidden-b)\n"
+            "\t```\n"
+            "Visible [3](#ref-visible).\n"
+        )
+
+        visible_text = self.reader_visible(report_text)
+
+        self.assertNotIn("[1](#ref-hidden-a)", visible_text)
+        self.assertNotIn("[2](#ref-hidden-b)", visible_text)
+        self.assertIn("[3](#ref-visible)", visible_text)
+
+    def test_tab_can_span_two_nested_list_content_indents(self):
+        report_text = (
+            "- -\t```md\n"
+            "\t[1](#ref-hidden)\n"
+            "\t```\n"
+            "Visible [2](#ref-visible).\n"
+        )
+
+        visible_text = self.reader_visible(report_text)
+
+        self.assertNotIn("[1](#ref-hidden)", visible_text)
+        self.assertIn("[2](#ref-visible)", visible_text)
+
+    def test_absolute_tab_normalization_preserves_container_combinations(self):
+        fenced_examples = (
+            (
+                "- > -\t```md\n"
+                "  > \t[1](#ref-hidden)\n"
+                "  > \t```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "- > - ```md\n"
+                "  >   [1](#ref-hidden)\n"
+                "  >   ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+        )
+        for fenced_example in fenced_examples:
+            with self.subTest(fenced_example=fenced_example):
+                visible_text = self.reader_visible(fenced_example)
+
                 self.assertNotIn("[1](#ref-hidden)", visible_text)
                 self.assertIn("[2](#ref-visible)", visible_text)
 

@@ -88,6 +88,9 @@ After those immutable container layers, closing indent is limited to the opener
 base through base plus three columns. The final base is zero for fence indent
 zero through three columns, or the opener fence indent for conservative wide
 list continuations without an explicit list marker on that line.
+Opener and closer lines expand tabs from absolute column zero before container
+parsing; each tab advances to the next four-column stop. Container layers then
+consume only normalized spaces, so nested layers cannot reset tab coordinates.
 Reader-facing citations may appear in any earlier report section. Citations in
 HTML comments or fenced code, including blockquote/list container fences, do
 not satisfy the join.
