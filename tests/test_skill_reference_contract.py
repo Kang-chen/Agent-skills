@@ -175,6 +175,14 @@ class SkillReferenceContractTests(unittest.TestCase):
             "appendix before references",
             combined_contract,
         )
+        self.assertIn(
+            "references heading may use atx or setext syntax",
+            combined_contract,
+        )
+        self.assertIn(
+            "fence after any leading whitespace",
+            combined_contract,
+        )
 
     def test_fresh_reader_reviews_are_self_contained_and_reference_aware(self):
         claim_review_match = re.search(
@@ -213,6 +221,14 @@ class SkillReferenceContractTests(unittest.TestCase):
         self.assertIn(
             "container_fenced_code",
             reference_requirements["non_reader_visible_contexts"],
+        )
+        self.assertEqual(
+            ["atx", "setext"],
+            reference_requirements["reference_heading_styles"],
+        )
+        self.assertEqual(
+            "fail_closed_any_leading_whitespace",
+            reference_requirements["fenced_code_indent_policy"],
         )
 
         sidecar_requirements = requirements["persistent_sidecars"]

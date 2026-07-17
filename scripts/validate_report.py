@@ -90,13 +90,14 @@ SOURCE_REPORT_REFERENCE = re.compile(
     r"report\.md#ref-[a-z0-9]+(?:-[a-z0-9]+)*"
 )
 FENCED_CODE_START = re.compile(
-    r"^[ ]{0,4}(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
+    r"^[ \t]*(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
 )
 BLOCKQUOTE_CONTAINER = re.compile(r"^[ ]{0,3}>[ \t]?")
 LIST_CONTAINER = re.compile(
     r"^[ ]{0,3}(?:[-+*]|[0-9]{1,9}[.)])(?:[ \t]+|$)"
 )
 MARKDOWN_HEADING = re.compile(r"(?m)^[ ]{0,3}#{1,6}[ \t]+\S.*$")
+SETEXT_UNDERLINE = re.compile(r"^[ ]{0,3}(?:=+|-+)[ \t]*$")
 
 
 @dataclass(frozen=True)
@@ -343,7 +344,7 @@ def _is_fenced_code_close(
 
     content = _markdown_container_content(source_line)
     closing = re.fullmatch(
-        rf"[ ]{{0,4}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
+        rf"[ \t]*{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
         content,
     )
     return closing is not None
@@ -416,6 +417,36 @@ def _reader_visible_markdown(report_text: str) -> str:
     return "".join(visible_lines)
 
 
+def _markdown_heading_spans(visible_text: str) -> list[tuple[int, int]]:
+    """Return visible ATX and one-line Setext heading source spans."""
+
+    spans = [
+        (match.start(), match.end())
+        for match in MARKDOWN_HEADING.finditer(visible_text)
+    ]
+    lines = visible_text.splitlines(keepends=True)
+    offsets: list[int] = []
+    offset = 0
+    for line in lines:
+        offsets.append(offset)
+        offset += len(line)
+
+    for position in range(len(lines) - 1):
+        title = lines[position].rstrip("\r\n")
+        underline = lines[position + 1].rstrip("\r\n")
+        if not title.strip() or SETEXT_UNDERLINE.fullmatch(underline) is None:
+            continue
+        if MARKDOWN_HEADING.fullmatch(title) is not None:
+            continue
+        spans.append(
+            (
+                offsets[position],
+                offsets[position + 1] + len(lines[position + 1]),
+            )
+        )
+    return sorted(set(spans))
+
+
 def _references_section_bounds(
     visible_text: str,
 ) -> tuple[tuple[int, int] | None, list[ValidationIssue]]:
@@ -447,8 +478,13 @@ def _references_section_bounds(
         return None, issues
 
     references_anchor = references_anchors[0]
-    heading = MARKDOWN_HEADING.search(visible_text, references_anchor.end())
-    if heading is None or visible_text[references_anchor.end() : heading.start()].strip():
+    headings = [
+        span
+        for span in _markdown_heading_spans(visible_text)
+        if span[0] >= references_anchor.end()
+    ]
+    heading = headings[0] if headings else None
+    if heading is None or visible_text[references_anchor.end() : heading[0]].strip():
         issues.append(
             _issue(
                 "report.references_heading_missing",
@@ -458,10 +494,13 @@ def _references_section_bounds(
         )
         return None, issues
 
-    later_heading = MARKDOWN_HEADING.search(visible_text, heading.end())
+    later_heading = next(
+        (span for span in headings[1:] if span[0] >= heading[1]),
+        None,
+    )
     end = len(visible_text)
     if later_heading is not None:
-        end = later_heading.start()
+        end = later_heading[0]
         issues.append(
             _issue(
                 "report.references_section_not_terminal",
@@ -469,7 +508,7 @@ def _references_section_bounds(
                 "report.md#references",
             )
         )
-    return (heading.end(), end), issues
+    return (heading[1], end), issues
 
 
 def _reference_index(

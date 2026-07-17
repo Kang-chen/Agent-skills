@@ -253,6 +253,55 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
         self.assertIn("report.references_section_not_terminal", self.issue_codes(issues))
 
+    def test_setext_heading_after_references_is_not_terminal(self):
+        report_text = self.valid_report() + (
+            "\nAppendix\n"
+            "--------\n\n"
+            '<a id="ref-source-b"></a>\n'
+            "2. Source B\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({"ref-source-a": 1}, index)
+        self.assertIn("report.references_section_not_terminal", self.issue_codes(issues))
+        self.assertIn(
+            "report.reference_entry_outside_references",
+            self.issue_codes(issues),
+        )
+
+    def test_references_section_accepts_setext_heading(self):
+        report_text = (
+            "# Report\n\n"
+            '<a id="references"></a>\n'
+            "References\n"
+            "==========\n\n"
+            '<a id="ref-source-a"></a>\n'
+            "1. Source A\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({"ref-source-a": 1}, index)
+        self.assertEqual(set(), self.issue_codes(issues))
+
+    def test_masked_setext_heading_after_references_is_not_a_section(self):
+        report_text = self.valid_report() + (
+            "\n```text\n"
+            "Appendix\n"
+            "--------\n"
+            "```\n\n"
+            "<!--\n"
+            "Comment appendix\n"
+            "---------------\n"
+            "-->\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({"ref-source-a": 1}, index)
+        self.assertEqual(set(), self.issue_codes(issues))
+
     def test_reference_entry_after_later_section_is_not_indexed(self):
         report_text = self.valid_report() + (
             "\n## Appendix\n\n"
@@ -325,6 +374,43 @@ class ValidateReportReferenceTests(unittest.TestCase):
             "- ```markdown\n  [1](#ref-source-a)\n  ```",
             "- item\n    ```markdown\n    [1](#ref-source-a)\n    ```",
             "> - ```markdown\n>   [1](#ref-source-a)\n>   ```",
+        )
+        for fenced_example in fenced_examples:
+            with self.subTest(fenced_example=fenced_example):
+                report_text = self.valid_report(findings_reference=False).replace(
+                    "The result is supported.",
+                    f"The result is supported.\n\n{fenced_example}",
+                )
+
+                issues = self.validate_references(report_text)
+
+                self.assertIn(
+                    "report.critical_source_reference_missing",
+                    self.issue_codes(issues),
+                )
+
+    def test_reference_in_wide_ordered_list_fence_does_not_close_source(self):
+        fenced_examples = (
+            "100. item\n     ```markdown\n     [1](#ref-source-a)\n     ```",
+            (
+                "123456789. item\n"
+                "           ```markdown\n"
+                "           [1](#ref-source-a)\n"
+                "           ```"
+            ),
+            (
+                "> 100. item\n"
+                ">      ```markdown\n"
+                ">      [1](#ref-source-a)\n"
+                ">      ```"
+            ),
+            (
+                "- outer\n"
+                "  100. item\n"
+                "       ```markdown\n"
+                "       [1](#ref-source-a)\n"
+                "       ```"
+            ),
         )
         for fenced_example in fenced_examples:
             with self.subTest(fenced_example=fenced_example):

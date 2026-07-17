@@ -29,7 +29,9 @@ report_requirements:
     required_link_pattern: '\[[1-9][0-9]*\]\(#ref-[a-z0-9-]+\)'
     reference_section_anchor: references
     reference_section_must_be_terminal: true
+    reference_heading_styles: [atx, setext]
     reference_number_order: 1..N_in_entry_order
+    fenced_code_indent_policy: fail_closed_any_leading_whitespace
     non_reader_visible_contexts:
       - html_comment
       - fenced_code
