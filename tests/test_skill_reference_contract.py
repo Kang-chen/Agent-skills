@@ -184,7 +184,7 @@ class SkillReferenceContractTests(unittest.TestCase):
             combined_contract,
         )
         self.assertIn(
-            "closing fence consumes only the opener's blockquote context",
+            "closing fence consumes the opener's list and blockquote containers in source order",
             combined_contract,
         )
         self.assertIn(
@@ -239,8 +239,12 @@ class SkillReferenceContractTests(unittest.TestCase):
             reference_requirements["fenced_code_indent_policy"],
         )
         self.assertEqual(
-            "opener_blockquote_context_only",
+            "ordered_opener_container_context_only",
             reference_requirements["fenced_code_close_policy"],
+        )
+        self.assertEqual(
+            "ordered_immutable_sequence",
+            reference_requirements["fenced_code_container_state"],
         )
         self.assertEqual(
             "opener_base..opener_base_plus_3_columns",

@@ -101,12 +101,20 @@ SETEXT_UNDERLINE = re.compile(r"^[ ]{0,3}(?:=+|-+)[ \t]*$")
 
 
 @dataclass(frozen=True)
+class ContainerSpec:
+    """One ordered Markdown container surrounding an opening fence."""
+
+    kind: str
+    content_indent_columns: int = 0
+
+
+@dataclass(frozen=True)
 class FencedCodeSpec:
-    """Opening fence syntax and the context allowed for its closer."""
+    """Opening fence syntax and the ordered context allowed for its closer."""
 
     character: str
     length: int
-    blockquote_depth: int
+    containers: tuple[ContainerSpec, ...]
     closing_base_indent: int
 
 
@@ -316,11 +324,9 @@ def _mask_markdown_source(source: str) -> str:
 
 
 def _fenced_code_spec(source_line: str) -> FencedCodeSpec | None:
-    """Return syntax and blockquote context for a valid opening line."""
+    """Return syntax and ordered containers for a valid opening line."""
 
-    content, blockquote_depth, list_content_indent = _markdown_container_context(
-        source_line
-    )
+    content, containers = _markdown_container_context(source_line)
     opening = FENCED_CODE_START.fullmatch(content)
     if opening is None:
         return None
@@ -328,16 +334,14 @@ def _fenced_code_spec(source_line: str) -> FencedCodeSpec | None:
     if fence.startswith("`") and "`" in opening.group("info"):
         return None
     fence_indent = _source_columns(opening.group("indent"))
-    if list_content_indent is not None:
-        closing_base_indent = list_content_indent + fence_indent
-    elif fence_indent <= 3:
+    if fence_indent <= 3:
         closing_base_indent = 0
     else:
         closing_base_indent = fence_indent
     return FencedCodeSpec(
         fence[0],
         len(fence),
-        blockquote_depth,
+        containers,
         closing_base_indent,
     )
 
@@ -356,43 +360,74 @@ def _source_columns(source: str) -> int:
 
 def _markdown_container_context(
     source_line: str,
-) -> tuple[str, int, int | None]:
-    """Return opener content, blockquote depth, and explicit list indent."""
+) -> tuple[str, tuple[ContainerSpec, ...]]:
+    """Return opener content and containers in their source order."""
 
     content = source_line
-    blockquote_depth = 0
-    list_prefix = ""
+    containers: list[ContainerSpec] = []
     while content:
         blockquote = BLOCKQUOTE_CONTAINER.match(content)
         if blockquote is not None:
             content = content[blockquote.end() :]
-            blockquote_depth += 1
+            containers.append(ContainerSpec("blockquote"))
             continue
         list_container = LIST_CONTAINER.match(content)
         if list_container is not None:
-            list_prefix += content[: list_container.end()]
+            container_source = content[: list_container.end()]
             content = content[list_container.end() :]
+            containers.append(
+                ContainerSpec("list", _source_columns(container_source))
+            )
             continue
         break
-    list_content_indent = _source_columns(list_prefix) if list_prefix else None
-    return content, blockquote_depth, list_content_indent
+    return content, tuple(containers)
+
+
+def _consume_indent_columns(source: str, required_columns: int) -> str | None:
+    """Consume exactly one container's indentation without overshooting."""
+
+    columns = 0
+    for position, character in enumerate(source):
+        if character not in " \t":
+            break
+        if character == "\t":
+            columns += 4 - (columns % 4)
+        else:
+            columns += 1
+        if columns > required_columns:
+            return None
+        if columns == required_columns:
+            return source[position + 1 :]
+    return source if required_columns == 0 else None
 
 
 def _is_fenced_code_close(
     source_line: str,
     fence_character: str,
     fence_length: int,
-    blockquote_depth: int,
+    containers: tuple[ContainerSpec, ...],
     closing_base_indent: int,
 ) -> bool:
-    """Close only after consuming the opener's blockquote context."""
+    """Close only after consuming the opener's ordered container context."""
 
     content = source_line
-    for _ in range(blockquote_depth):
-        blockquote = BLOCKQUOTE_CONTAINER.match(content)
-        if blockquote is None:
-            return False
-        content = content[blockquote.end() :]
+    for container in containers:
+        if container.kind == "list":
+            remaining = _consume_indent_columns(
+                content,
+                container.content_indent_columns,
+            )
+            if remaining is None:
+                return False
+            content = remaining
+            continue
+        if container.kind == "blockquote":
+            blockquote = BLOCKQUOTE_CONTAINER.match(content)
+            if blockquote is None:
+                return False
+            content = content[blockquote.end() :]
+            continue
+        return False
     closing = re.fullmatch(
         rf"(?P<indent>[ \t]*)"
         rf"{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
@@ -411,7 +446,7 @@ def _reader_visible_markdown(report_text: str) -> str:
     in_html_comment = False
     fence_character: str | None = None
     fence_length = 0
-    fence_blockquote_depth = 0
+    fence_containers: tuple[ContainerSpec, ...] = ()
     fence_closing_base_indent = 0
 
     for line in report_text.splitlines(keepends=True):
@@ -422,12 +457,12 @@ def _reader_visible_markdown(report_text: str) -> str:
                 source_line,
                 fence_character,
                 fence_length,
-                fence_blockquote_depth,
+                fence_containers,
                 fence_closing_base_indent,
             ):
                 fence_character = None
                 fence_length = 0
-                fence_blockquote_depth = 0
+                fence_containers = ()
                 fence_closing_base_indent = 0
             continue
 
@@ -437,7 +472,7 @@ def _reader_visible_markdown(report_text: str) -> str:
         if fence_spec is not None:
             fence_character = fence_spec.character
             fence_length = fence_spec.length
-            fence_blockquote_depth = fence_spec.blockquote_depth
+            fence_containers = fence_spec.containers
             fence_closing_base_indent = fence_spec.closing_base_indent
             visible_lines.append(_mask_markdown_source(line))
             continue
@@ -475,7 +510,7 @@ def _reader_visible_markdown(report_text: str) -> str:
         if fence_spec is not None:
             fence_character = fence_spec.character
             fence_length = fence_spec.length
-            fence_blockquote_depth = fence_spec.blockquote_depth
+            fence_containers = fence_spec.containers
             fence_closing_base_indent = fence_spec.closing_base_indent
             visible_line = _mask_markdown_source(visible_line)
         visible_lines.append(visible_line)

@@ -76,9 +76,10 @@ null, or inconclusive.
    in numbered order from 1 through N. Put any Appendix before References.
    Its heading may use ATX or Setext syntax. Treat a fence after any leading
    whitespace as non-reader-visible content during deterministic validation.
-   A closing fence consumes only the opener's blockquote context; markers that
-   first appear inside code never become closing context. Closing indent is
-   limited to the opener base through base plus three columns.
+   A closing fence consumes the opener's list and blockquote containers in
+   source order; markers that first appear inside code never become closing
+   context. Closing indent is limited to the opener base through base plus
+   three columns.
 5. **Review and validate:** perform separate claim-coverage, fresh-reader, and
    visual checks when applicable. Confirm that each report-critical section's
    numeric references close through manifest sources to the evidence sidecar.

@@ -32,7 +32,8 @@ report_requirements:
     reference_heading_styles: [atx, setext]
     reference_number_order: 1..N_in_entry_order
     fenced_code_indent_policy: fail_closed_any_leading_whitespace
-    fenced_code_close_policy: opener_blockquote_context_only
+    fenced_code_close_policy: ordered_opener_container_context_only
+    fenced_code_container_state: ordered_immutable_sequence
     fenced_code_closing_indent_policy: opener_base..opener_base_plus_3_columns
     non_reader_visible_contexts:
       - html_comment

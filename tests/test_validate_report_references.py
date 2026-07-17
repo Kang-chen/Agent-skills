@@ -575,6 +575,86 @@ class ValidateReportReferenceTests(unittest.TestCase):
                 self.assertNotIn("[1](#ref-hidden)", visible_text)
                 self.assertIn("[2](#ref-visible)", visible_text)
 
+    def test_nested_container_overindent_does_not_close_active_fence(self):
+        report_text = (
+            "- > 100. ```markdown\n"
+            "  >          ```\n"
+            "  >      [1](#ref-hidden-a)\n"
+            "  >          ```\n"
+            "  >      [2](#ref-hidden-b)\n"
+            "  >      ```\n"
+            "Visible [3](#ref-visible).\n"
+        )
+
+        visible_text = self.reader_visible(report_text)
+
+        self.assertNotIn("[1](#ref-hidden-a)", visible_text)
+        self.assertNotIn("[2](#ref-hidden-b)", visible_text)
+        self.assertIn("[3](#ref-visible)", visible_text)
+
+    def test_ordered_container_sequence_accepts_matching_real_closer(self):
+        fenced_examples = (
+            (
+                "- > 100. ```markdown\n"
+                "  >      [1](#ref-hidden)\n"
+                "  >      ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "> - ```markdown\n"
+                ">   [1](#ref-hidden)\n"
+                ">   ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "- > - > 100. ```markdown\n"
+                "  >   >      [1](#ref-hidden)\n"
+                "  >   >      ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+        )
+        for fenced_example in fenced_examples:
+            with self.subTest(fenced_example=fenced_example):
+                visible_text = self.reader_visible(fenced_example)
+
+                self.assertNotIn("[1](#ref-hidden)", visible_text)
+                self.assertIn("[2](#ref-visible)", visible_text)
+
+    def test_container_closer_respects_tab_column_boundaries(self):
+        invalid_tab_closer = (
+            "- ```markdown\n"
+            "\t```\n"
+            "[1](#ref-hidden-a)\n"
+            "\t```\n"
+            "[2](#ref-hidden-b)\n"
+            "  ```\n"
+            "Visible [3](#ref-visible).\n"
+        )
+        valid_tab_closers = (
+            (
+                "-\t```markdown\n"
+                "\t[1](#ref-hidden)\n"
+                "\t```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "\t```markdown\n"
+                "\t[1](#ref-hidden)\n"
+                "\t```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+        )
+
+        invalid_visible_text = self.reader_visible(invalid_tab_closer)
+        self.assertNotIn("[1](#ref-hidden-a)", invalid_visible_text)
+        self.assertNotIn("[2](#ref-hidden-b)", invalid_visible_text)
+        self.assertIn("[3](#ref-visible)", invalid_visible_text)
+        for fenced_example in valid_tab_closers:
+            with self.subTest(fenced_example=fenced_example):
+                visible_text = self.reader_visible(fenced_example)
+                self.assertNotIn("[1](#ref-hidden)", visible_text)
+                self.assertIn("[2](#ref-visible)", visible_text)
+
     def test_comment_syntax_in_fenced_code_does_not_hide_later_references(self):
         report_text = self.valid_report().replace(
             "# Report\n\n",
