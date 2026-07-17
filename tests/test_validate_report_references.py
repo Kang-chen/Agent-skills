@@ -228,6 +228,16 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
         self.assertEqual(set(), self.issue_codes(issues))
 
+    def test_fence_syntax_in_html_comment_does_not_hide_later_references(self):
+        report_text = self.valid_report().replace(
+            "# Report\n\n",
+            "# Report\n\n<!--\n```\n-->\n\n",
+        )
+
+        issues = self.validate_references(report_text)
+
+        self.assertEqual(set(), self.issue_codes(issues))
+
     def test_critical_source_reference_closes_in_its_section(self):
         issues = self.validate_references(self.valid_report())
 

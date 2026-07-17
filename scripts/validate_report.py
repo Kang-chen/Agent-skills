@@ -86,7 +86,6 @@ REFERENCE_ENTRY = re.compile(
     r'(?P<number>[1-9][0-9]*)\.[ \t]+(?P<text>\S.*)$'
 )
 INTERNAL_EVIDENCE_MARKER = re.compile(r"\[E:[^\]\n]+\]")
-HTML_COMMENT = re.compile(r"<!--.*?(?:-->|$)", re.DOTALL)
 FENCED_CODE_START = re.compile(
     r"^[ ]{0,3}(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
 )
@@ -285,43 +284,83 @@ def _mask_markdown_source(source: str) -> str:
     return re.sub(r"[^\r\n]", " ", source)
 
 
+def _fenced_code_spec(source_line: str) -> tuple[str, int] | None:
+    """Return the fence character and length for a valid opening line."""
+
+    opening = FENCED_CODE_START.fullmatch(source_line)
+    if opening is None:
+        return None
+    fence = opening.group("fence")
+    if fence.startswith("`") and "`" in opening.group("info"):
+        return None
+    return fence[0], len(fence)
+
+
 def _reader_visible_markdown(report_text: str) -> str:
     """Mask comments and fenced code where Markdown links are inactive."""
 
     visible_lines: list[str] = []
+    in_html_comment = False
     fence_character: str | None = None
     fence_length = 0
 
     for line in report_text.splitlines(keepends=True):
         source_line = line.rstrip("\r\n")
-        if fence_character is None:
-            opening = FENCED_CODE_START.fullmatch(source_line)
-            if opening is None:
-                visible_lines.append(line)
-                continue
-            fence = opening.group("fence")
-            if fence.startswith("`") and "`" in opening.group("info"):
-                visible_lines.append(line)
-                continue
-            fence_character = fence[0]
-            fence_length = len(fence)
+        if fence_character is not None:
+            visible_lines.append(_mask_markdown_source(line))
+            closing = re.fullmatch(
+                rf"[ ]{{0,3}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
+                source_line,
+            )
+            if closing is not None:
+                fence_character = None
+                fence_length = 0
+            continue
+
+        fence_spec = (
+            _fenced_code_spec(source_line) if not in_html_comment else None
+        )
+        if fence_spec is not None:
+            fence_character, fence_length = fence_spec
             visible_lines.append(_mask_markdown_source(line))
             continue
 
-        visible_lines.append(_mask_markdown_source(line))
-        closing = re.fullmatch(
-            rf"[ ]{{0,3}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
-            source_line,
-        )
-        if closing is not None:
-            fence_character = None
-            fence_length = 0
+        visible_characters = list(line)
+        cursor = 0
+        while cursor < len(line):
+            if in_html_comment:
+                closing_position = line.find("-->", cursor)
+                mask_end = (
+                    len(line) if closing_position == -1 else closing_position + 3
+                )
+                for position in range(cursor, mask_end):
+                    if visible_characters[position] not in "\r\n":
+                        visible_characters[position] = " "
+                cursor = mask_end
+                if closing_position == -1:
+                    break
+                in_html_comment = False
+                continue
 
-    fence_masked_text = "".join(visible_lines)
-    return HTML_COMMENT.sub(
-        lambda match: _mask_markdown_source(match.group(0)),
-        fence_masked_text,
-    )
+            opening_position = line.find("<!--", cursor)
+            if opening_position == -1:
+                break
+            cursor = opening_position
+            in_html_comment = True
+
+        visible_line = "".join(visible_characters)
+        masked_source_line = visible_line.rstrip("\r\n")
+        fence_spec = (
+            _fenced_code_spec(masked_source_line)
+            if not in_html_comment
+            else None
+        )
+        if fence_spec is not None:
+            fence_character, fence_length = fence_spec
+            visible_line = _mask_markdown_source(visible_line)
+        visible_lines.append(visible_line)
+
+    return "".join(visible_lines)
 
 
 def _reference_index(
