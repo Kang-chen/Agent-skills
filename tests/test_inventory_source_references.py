@@ -69,15 +69,84 @@ class InventorySourceReferenceTests(unittest.TestCase):
         )
 
     def test_inventory_generates_stable_report_reference(self):
+        self.manifest_path.write_text(
+            """schema_version: 2
+preflight: {}
+sources:
+  - source_id: SRC-Study__ALPHA---V2
+    locator: sources/a.md
+""",
+            encoding="utf-8",
+        )
+
         result = inventory.inventory_sources(
             self.manifest_path,
             self.evidence_path,
             self.checkout,
-            additional_locators=["sources/a.md"],
         )
 
         source = result.sources[0]
-        self.assertRegex(source.report_reference, r"^report\.md#ref-[a-z0-9-]+$")
+        self.assertEqual(
+            "report.md#ref-study-alpha-v2",
+            source.report_reference,
+        )
+
+    def test_inventory_rejects_false_report_reference_without_rewriting(self):
+        self.manifest_path.write_text(
+            """schema_version: 2
+preflight: {}
+sources:
+  - source_id: SRC-A
+    locator: sources/a.md
+    report_reference: false
+""",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            TypeError,
+            "Source report_reference must be a string: SRC-A",
+        ):
+            inventory.inventory_sources(
+                self.manifest_path,
+                self.evidence_path,
+                self.checkout,
+            )
+
+        manifest = validator._read_yaml_mapping(self.manifest_path)
+        self.assertIs(False, manifest["sources"][0]["report_reference"])
+
+    def test_inventory_preserves_empty_reference_for_validator(self):
+        self.manifest_path.write_text(
+            """schema_version: 2
+preflight: {}
+sources:
+  - source_id: SRC-A
+    locator: sources/a.md
+    report_reference: ''
+""",
+            encoding="utf-8",
+        )
+        self.evidence_path.write_text(
+            "record_id\tsource_ids\nREC-A\tSRC-A\n",
+            encoding="utf-8",
+        )
+
+        result = inventory.inventory_sources(
+            self.manifest_path,
+            self.evidence_path,
+            self.checkout,
+        )
+        inventory.update_inventory_blocks(self.manifest_path, result)
+        manifest = validator._read_yaml_mapping(self.manifest_path)
+        _, issues = validator._source_index(manifest, self.checkout)
+
+        self.assertEqual("", result.sources[0].report_reference)
+        self.assertEqual("", manifest["sources"][0]["report_reference"])
+        self.assertIn(
+            "source.report_reference_required",
+            {issue.code for issue in issues},
+        )
 
     def test_inventory_preserves_existing_report_reference(self):
         self.manifest_path.write_text(

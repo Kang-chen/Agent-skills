@@ -242,10 +242,14 @@ def inventory_sources(
     for locator in sorted(locators):
         prior = existing.get(locator, {})
         source_id = str(prior.get("source_id") or stable_source_id(locator))
-        report_reference = str(
-            prior.get("report_reference")
-            or f"report.md#{stable_reference_anchor(source_id)}"
-        )
+        if "report_reference" in prior:
+            report_reference = prior["report_reference"]
+            if not isinstance(report_reference, str):
+                raise TypeError(
+                    f"Source report_reference must be a string: {source_id}"
+                )
+        else:
+            report_reference = f"report.md#{stable_reference_anchor(source_id)}"
         source_path = _resolve_source(target_checkout, locator)
         if source_path.exists():
             availability = str(prior.get("availability") or "available")
