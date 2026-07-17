@@ -134,6 +134,17 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
         self.assertIn("report.reference_anchor_duplicate", self.issue_codes(issues))
 
+    def test_bare_duplicate_reference_anchor_is_rejected(self):
+        report_text = (
+            '<a id="ref-source-a"></a>\n'
+            "1. Source A\n\n"
+            '<a id="ref-source-a"></a>\n'
+        )
+
+        _, issues = self.reference_index(report_text)
+
+        self.assertIn("report.reference_anchor_duplicate", self.issue_codes(issues))
+
     def test_duplicate_reference_number_is_rejected(self):
         report_text = (
             '<a id="ref-source-a"></a>\n'
@@ -186,6 +197,36 @@ class ValidateReportReferenceTests(unittest.TestCase):
             if issue.code == "report.critical_source_reference_missing"
         ]
         self.assertEqual(["evidence.tsv:2"], [issue.locator for issue in missing])
+
+    def test_reference_in_html_comment_does_not_close_critical_source(self):
+        report_text = self.valid_report(findings_reference=False).replace(
+            "The result is supported.",
+            "The result is supported.\n\n<!-- [1](#ref-source-a) -->",
+        )
+
+        issues = self.validate_references(report_text)
+
+        self.assertIn("report.critical_source_reference_missing", self.issue_codes(issues))
+
+    def test_reference_in_fenced_code_does_not_close_critical_source(self):
+        report_text = self.valid_report(findings_reference=False).replace(
+            "The result is supported.",
+            "The result is supported.\n\n```markdown\n[1](#ref-source-a)\n```",
+        )
+
+        issues = self.validate_references(report_text)
+
+        self.assertIn("report.critical_source_reference_missing", self.issue_codes(issues))
+
+    def test_comment_syntax_in_fenced_code_does_not_hide_later_references(self):
+        report_text = self.valid_report().replace(
+            "# Report\n\n",
+            "# Report\n\n```html\n<!--\n```\n\n",
+        )
+
+        issues = self.validate_references(report_text)
+
+        self.assertEqual(set(), self.issue_codes(issues))
 
     def test_critical_source_reference_closes_in_its_section(self):
         issues = self.validate_references(self.valid_report())

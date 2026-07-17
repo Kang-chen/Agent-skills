@@ -86,6 +86,10 @@ REFERENCE_ENTRY = re.compile(
     r'(?P<number>[1-9][0-9]*)\.[ \t]+(?P<text>\S.*)$'
 )
 INTERNAL_EVIDENCE_MARKER = re.compile(r"\[E:[^\]\n]+\]")
+HTML_COMMENT = re.compile(r"<!--.*?(?:-->|$)", re.DOTALL)
+FENCED_CODE_START = re.compile(
+    r"^[ ]{0,3}(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
+)
 
 
 @dataclass(frozen=True)
@@ -275,19 +279,67 @@ def _validate_report_locator(
     return []
 
 
+def _mask_markdown_source(source: str) -> str:
+    """Mask Markdown source while preserving its line structure."""
+
+    return re.sub(r"[^\r\n]", " ", source)
+
+
+def _reader_visible_markdown(report_text: str) -> str:
+    """Mask comments and fenced code where Markdown links are inactive."""
+
+    visible_lines: list[str] = []
+    fence_character: str | None = None
+    fence_length = 0
+
+    for line in report_text.splitlines(keepends=True):
+        source_line = line.rstrip("\r\n")
+        if fence_character is None:
+            opening = FENCED_CODE_START.fullmatch(source_line)
+            if opening is None:
+                visible_lines.append(line)
+                continue
+            fence = opening.group("fence")
+            if fence.startswith("`") and "`" in opening.group("info"):
+                visible_lines.append(line)
+                continue
+            fence_character = fence[0]
+            fence_length = len(fence)
+            visible_lines.append(_mask_markdown_source(line))
+            continue
+
+        visible_lines.append(_mask_markdown_source(line))
+        closing = re.fullmatch(
+            rf"[ ]{{0,3}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
+            source_line,
+        )
+        if closing is not None:
+            fence_character = None
+            fence_length = 0
+
+    fence_masked_text = "".join(visible_lines)
+    return HTML_COMMENT.sub(
+        lambda match: _mask_markdown_source(match.group(0)),
+        fence_masked_text,
+    )
+
+
 def _reference_index(
     report_text: str,
 ) -> tuple[dict[str, int], list[ValidationIssue]]:
     """Index numbered reference entries and validate their report links."""
 
+    visible_text = _reader_visible_markdown(report_text)
     index: dict[str, int] = {}
     numbers: dict[int, str] = {}
     issues: list[ValidationIssue] = []
 
-    for entry in REFERENCE_ENTRY.finditer(report_text):
-        anchor = entry.group("anchor")
-        number = int(entry.group("number"))
-        if anchor in index:
+    reference_anchor_counts: dict[str, int] = {}
+    for anchor in EXPLICIT_REPORT_ANCHOR.findall(visible_text):
+        if anchor.startswith("ref-"):
+            reference_anchor_counts[anchor] = reference_anchor_counts.get(anchor, 0) + 1
+    for anchor, count in reference_anchor_counts.items():
+        if count > 1:
             issues.append(
                 _issue(
                     "report.reference_anchor_duplicate",
@@ -295,7 +347,11 @@ def _reference_index(
                     f"report.md#{anchor}",
                 )
             )
-        else:
+
+    for entry in REFERENCE_ENTRY.finditer(visible_text):
+        anchor = entry.group("anchor")
+        number = int(entry.group("number"))
+        if anchor not in index:
             index[anchor] = number
         if number in numbers:
             issues.append(
@@ -318,7 +374,7 @@ def _reference_index(
             )
         )
 
-    for link in REFERENCE_LINK.finditer(report_text):
+    for link in REFERENCE_LINK.finditer(visible_text):
         anchor = link.group("anchor")
         number = int(link.group("number"))
         entry_number = index.get(anchor)
@@ -346,7 +402,8 @@ def _section_text(report_text: str, anchor: str) -> str | None:
 
     if anchor.startswith("ref-"):
         return None
-    anchors = list(EXPLICIT_REPORT_ANCHOR.finditer(report_text))
+    visible_text = _reader_visible_markdown(report_text)
+    anchors = list(EXPLICIT_REPORT_ANCHOR.finditer(visible_text))
     start_position: int | None = None
     for position, match in enumerate(anchors):
         if match.group(1) == anchor:
@@ -356,12 +413,12 @@ def _section_text(report_text: str, anchor: str) -> str | None:
         return None
 
     start = anchors[start_position].start()
-    end = len(report_text)
+    end = len(visible_text)
     for match in anchors[start_position + 1 :]:
         if not match.group(1).startswith("ref-"):
             end = match.start()
             break
-    return report_text[start:end]
+    return visible_text[start:end]
 
 
 def _validate_report_references(
