@@ -183,6 +183,10 @@ class SkillReferenceContractTests(unittest.TestCase):
             "fence after any leading whitespace",
             combined_contract,
         )
+        self.assertIn(
+            "closing fence consumes only the opener's blockquote context",
+            combined_contract,
+        )
 
     def test_fresh_reader_reviews_are_self_contained_and_reference_aware(self):
         claim_review_match = re.search(
@@ -229,6 +233,10 @@ class SkillReferenceContractTests(unittest.TestCase):
         self.assertEqual(
             "fail_closed_any_leading_whitespace",
             reference_requirements["fenced_code_indent_policy"],
+        )
+        self.assertEqual(
+            "opener_blockquote_context_only",
+            reference_requirements["fenced_code_close_policy"],
         )
 
         sidecar_requirements = requirements["persistent_sidecars"]

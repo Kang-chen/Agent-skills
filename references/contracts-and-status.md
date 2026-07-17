@@ -80,7 +80,9 @@ References. Reference entries appear in numbered order from 1 through N, and
 only entries inside that terminal References section satisfy a source join.
 The References heading may use ATX or Setext syntax. For conservative
 validation, a fence after any leading whitespace is masked as code, including
-wide ordered-list continuations and nested list containers.
+wide ordered-list continuations and nested list containers. A closing fence
+consumes only the opener's blockquote context; new list or blockquote markers
+inside code are literal content, not container prefixes.
 Reader-facing citations may appear in any earlier report section. Citations in
 HTML comments or fenced code, including blockquote/list container fences, do
 not satisfy the join.

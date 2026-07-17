@@ -99,6 +99,13 @@ class ValidateReportReferenceTests(unittest.TestCase):
             "report.md",
         )
 
+    def reader_visible(self, report_text: str) -> str:
+        self.assertTrue(
+            hasattr(validator, "_reader_visible_markdown"),
+            "validator._reader_visible_markdown is missing",
+        )
+        return validator._reader_visible_markdown(report_text)
+
     def test_numeric_reference_replaces_internal_evidence_marker(self):
         records, issues = validator._validate_evidence_rows(
             [self.evidence_row()],
@@ -425,6 +432,60 @@ class ValidateReportReferenceTests(unittest.TestCase):
                     "report.critical_source_reference_missing",
                     self.issue_codes(issues),
                 )
+
+    def test_top_level_fence_content_markers_do_not_close_active_fence(self):
+        content_markers = ("- ```", "> ```", "100. ```")
+        for content_marker in content_markers:
+            with self.subTest(content_marker=content_marker):
+                report_text = (
+                    "```markdown\n"
+                    f"{content_marker}\n"
+                    "[1](#ref-hidden)\n"
+                    "```\n"
+                    "Visible [2](#ref-visible).\n"
+                )
+
+                visible_text = self.reader_visible(report_text)
+
+                self.assertNotIn("[1](#ref-hidden)", visible_text)
+                self.assertIn("[2](#ref-visible)", visible_text)
+
+    def test_container_fence_closes_only_at_matching_real_closer(self):
+        fenced_examples = (
+            (
+                "> ```markdown\n"
+                "> - ```\n"
+                "> [1](#ref-hidden)\n"
+                "> ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "- ```markdown\n"
+                "  > ```\n"
+                "  [1](#ref-hidden)\n"
+                "  ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "100. ```markdown\n"
+                "     [1](#ref-hidden)\n"
+                "     ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+            (
+                "> - ```markdown\n"
+                ">   100. ```\n"
+                ">   [1](#ref-hidden)\n"
+                ">   ```\n"
+                "Visible [2](#ref-visible).\n"
+            ),
+        )
+        for fenced_example in fenced_examples:
+            with self.subTest(fenced_example=fenced_example):
+                visible_text = self.reader_visible(fenced_example)
+
+                self.assertNotIn("[1](#ref-hidden)", visible_text)
+                self.assertIn("[2](#ref-visible)", visible_text)
 
     def test_comment_syntax_in_fenced_code_does_not_hide_later_references(self):
         report_text = self.valid_report().replace(

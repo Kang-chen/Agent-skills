@@ -101,6 +101,15 @@ SETEXT_UNDERLINE = re.compile(r"^[ ]{0,3}(?:=+|-+)[ \t]*$")
 
 
 @dataclass(frozen=True)
+class FencedCodeSpec:
+    """Opening fence syntax and its outer blockquote depth."""
+
+    character: str
+    length: int
+    blockquote_depth: int
+
+
+@dataclass(frozen=True)
 class ValidationIssue:
     """One deterministic validation failure."""
 
@@ -305,44 +314,52 @@ def _mask_markdown_source(source: str) -> str:
     return re.sub(r"[^\r\n]", " ", source)
 
 
-def _fenced_code_spec(source_line: str) -> tuple[str, int] | None:
-    """Return the fence character and length for a valid opening line."""
+def _fenced_code_spec(source_line: str) -> FencedCodeSpec | None:
+    """Return syntax and blockquote context for a valid opening line."""
 
-    source_line = _markdown_container_content(source_line)
-    opening = FENCED_CODE_START.fullmatch(source_line)
+    content, blockquote_depth = _markdown_container_context(source_line)
+    opening = FENCED_CODE_START.fullmatch(content)
     if opening is None:
         return None
     fence = opening.group("fence")
     if fence.startswith("`") and "`" in opening.group("info"):
         return None
-    return fence[0], len(fence)
+    return FencedCodeSpec(fence[0], len(fence), blockquote_depth)
 
 
-def _markdown_container_content(source_line: str) -> str:
-    """Remove blockquote and list markers before Markdown block parsing."""
+def _markdown_container_context(source_line: str) -> tuple[str, int]:
+    """Return opener content and the count of outer blockquote markers."""
 
     content = source_line
+    blockquote_depth = 0
     while content:
         blockquote = BLOCKQUOTE_CONTAINER.match(content)
         if blockquote is not None:
             content = content[blockquote.end() :]
+            blockquote_depth += 1
             continue
         list_container = LIST_CONTAINER.match(content)
         if list_container is not None:
             content = content[list_container.end() :]
             continue
         break
-    return content
+    return content, blockquote_depth
 
 
 def _is_fenced_code_close(
     source_line: str,
     fence_character: str,
     fence_length: int,
+    blockquote_depth: int,
 ) -> bool:
-    """Return whether a container-aware line closes the active fence."""
+    """Close only after consuming the opener's blockquote context."""
 
-    content = _markdown_container_content(source_line)
+    content = source_line
+    for _ in range(blockquote_depth):
+        blockquote = BLOCKQUOTE_CONTAINER.match(content)
+        if blockquote is None:
+            return False
+        content = content[blockquote.end() :]
     closing = re.fullmatch(
         rf"[ \t]*{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
         content,
@@ -357,6 +374,7 @@ def _reader_visible_markdown(report_text: str) -> str:
     in_html_comment = False
     fence_character: str | None = None
     fence_length = 0
+    fence_blockquote_depth = 0
 
     for line in report_text.splitlines(keepends=True):
         source_line = line.rstrip("\r\n")
@@ -366,16 +384,20 @@ def _reader_visible_markdown(report_text: str) -> str:
                 source_line,
                 fence_character,
                 fence_length,
+                fence_blockquote_depth,
             ):
                 fence_character = None
                 fence_length = 0
+                fence_blockquote_depth = 0
             continue
 
         fence_spec = (
             _fenced_code_spec(source_line) if not in_html_comment else None
         )
         if fence_spec is not None:
-            fence_character, fence_length = fence_spec
+            fence_character = fence_spec.character
+            fence_length = fence_spec.length
+            fence_blockquote_depth = fence_spec.blockquote_depth
             visible_lines.append(_mask_markdown_source(line))
             continue
 
@@ -410,7 +432,9 @@ def _reader_visible_markdown(report_text: str) -> str:
             else None
         )
         if fence_spec is not None:
-            fence_character, fence_length = fence_spec
+            fence_character = fence_spec.character
+            fence_length = fence_spec.length
+            fence_blockquote_depth = fence_spec.blockquote_depth
             visible_line = _mask_markdown_source(visible_line)
         visible_lines.append(visible_line)
 
