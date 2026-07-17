@@ -90,8 +90,13 @@ SOURCE_REPORT_REFERENCE = re.compile(
     r"report\.md#ref-[a-z0-9]+(?:-[a-z0-9]+)*"
 )
 FENCED_CODE_START = re.compile(
-    r"^[ ]{0,3}(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
+    r"^[ ]{0,4}(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
 )
+BLOCKQUOTE_CONTAINER = re.compile(r"^[ ]{0,3}>[ \t]?")
+LIST_CONTAINER = re.compile(
+    r"^[ ]{0,3}(?:[-+*]|[0-9]{1,9}[.)])(?:[ \t]+|$)"
+)
+MARKDOWN_HEADING = re.compile(r"(?m)^[ ]{0,3}#{1,6}[ \t]+\S.*$")
 
 
 @dataclass(frozen=True)
@@ -302,6 +307,7 @@ def _mask_markdown_source(source: str) -> str:
 def _fenced_code_spec(source_line: str) -> tuple[str, int] | None:
     """Return the fence character and length for a valid opening line."""
 
+    source_line = _markdown_container_content(source_line)
     opening = FENCED_CODE_START.fullmatch(source_line)
     if opening is None:
         return None
@@ -309,6 +315,38 @@ def _fenced_code_spec(source_line: str) -> tuple[str, int] | None:
     if fence.startswith("`") and "`" in opening.group("info"):
         return None
     return fence[0], len(fence)
+
+
+def _markdown_container_content(source_line: str) -> str:
+    """Remove blockquote and list markers before Markdown block parsing."""
+
+    content = source_line
+    while content:
+        blockquote = BLOCKQUOTE_CONTAINER.match(content)
+        if blockquote is not None:
+            content = content[blockquote.end() :]
+            continue
+        list_container = LIST_CONTAINER.match(content)
+        if list_container is not None:
+            content = content[list_container.end() :]
+            continue
+        break
+    return content
+
+
+def _is_fenced_code_close(
+    source_line: str,
+    fence_character: str,
+    fence_length: int,
+) -> bool:
+    """Return whether a container-aware line closes the active fence."""
+
+    content = _markdown_container_content(source_line)
+    closing = re.fullmatch(
+        rf"[ ]{{0,4}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
+        content,
+    )
+    return closing is not None
 
 
 def _reader_visible_markdown(report_text: str) -> str:
@@ -323,11 +361,11 @@ def _reader_visible_markdown(report_text: str) -> str:
         source_line = line.rstrip("\r\n")
         if fence_character is not None:
             visible_lines.append(_mask_markdown_source(line))
-            closing = re.fullmatch(
-                rf"[ ]{{0,3}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
+            if _is_fenced_code_close(
                 source_line,
-            )
-            if closing is not None:
+                fence_character,
+                fence_length,
+            ):
                 fence_character = None
                 fence_length = 0
             continue
@@ -378,6 +416,62 @@ def _reader_visible_markdown(report_text: str) -> str:
     return "".join(visible_lines)
 
 
+def _references_section_bounds(
+    visible_text: str,
+) -> tuple[tuple[int, int] | None, list[ValidationIssue]]:
+    """Locate the single terminal References chapter in visible Markdown."""
+
+    issues: list[ValidationIssue] = []
+    references_anchors = [
+        match
+        for match in EXPLICIT_REPORT_ANCHOR.finditer(visible_text)
+        if match.group(1) == "references"
+    ]
+    if not references_anchors:
+        issues.append(
+            _issue(
+                "report.references_section_missing",
+                "Report must declare one References section anchor",
+                "report.md#references",
+            )
+        )
+        return None, issues
+    if len(references_anchors) > 1:
+        issues.append(
+            _issue(
+                "report.references_section_duplicate",
+                "References section anchor must be declared exactly once",
+                "report.md#references",
+            )
+        )
+        return None, issues
+
+    references_anchor = references_anchors[0]
+    heading = MARKDOWN_HEADING.search(visible_text, references_anchor.end())
+    if heading is None or visible_text[references_anchor.end() : heading.start()].strip():
+        issues.append(
+            _issue(
+                "report.references_heading_missing",
+                "References anchor must be followed immediately by its section heading",
+                "report.md#references",
+            )
+        )
+        return None, issues
+
+    later_heading = MARKDOWN_HEADING.search(visible_text, heading.end())
+    end = len(visible_text)
+    if later_heading is not None:
+        end = later_heading.start()
+        issues.append(
+            _issue(
+                "report.references_section_not_terminal",
+                "References must be the final formal report section",
+                "report.md#references",
+            )
+        )
+    return (heading.end(), end), issues
+
+
 def _reference_index(
     report_text: str,
 ) -> tuple[dict[str, int], list[ValidationIssue]]:
@@ -386,7 +480,7 @@ def _reference_index(
     visible_text = _reader_visible_markdown(report_text)
     index: dict[str, int] = {}
     numbers: dict[int, str] = {}
-    issues: list[ValidationIssue] = []
+    bounds, issues = _references_section_bounds(visible_text)
 
     reference_anchor_counts: dict[str, int] = {}
     for anchor in EXPLICIT_REPORT_ANCHOR.findall(visible_text):
@@ -402,9 +496,30 @@ def _reference_index(
                 )
             )
 
-    for entry in REFERENCE_ENTRY.finditer(visible_text):
+    entries = list(REFERENCE_ENTRY.finditer(visible_text))
+    valid_entries: list[re.Match[str]] = []
+    for entry in entries:
+        inside_references = (
+            bounds is not None
+            and bounds[0] <= entry.start()
+            and entry.end() <= bounds[1]
+        )
+        if not inside_references:
+            issues.append(
+                _issue(
+                    "report.reference_entry_outside_references",
+                    "Reference entry must be inside the terminal References section",
+                    f"report.md#{entry.group('anchor')}",
+                )
+            )
+            continue
+        valid_entries.append(entry)
+
+    ordered_numbers: list[int] = []
+    for entry in valid_entries:
         anchor = entry.group("anchor")
         number = int(entry.group("number"))
+        ordered_numbers.append(number)
         if anchor not in index:
             index[anchor] = number
         if number in numbers:
@@ -418,7 +533,6 @@ def _reference_index(
         else:
             numbers[number] = anchor
 
-    ordered_numbers = sorted(numbers)
     if ordered_numbers and ordered_numbers != list(range(1, len(ordered_numbers) + 1)):
         issues.append(
             _issue(

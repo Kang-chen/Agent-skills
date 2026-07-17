@@ -124,6 +124,8 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
     def test_duplicate_reference_anchor_is_rejected(self):
         report_text = (
+            '<a id="references"></a>\n'
+            "## References\n\n"
             '<a id="ref-source-a"></a>\n'
             "1. Source A\n\n"
             '<a id="ref-source-a"></a>\n'
@@ -136,6 +138,8 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
     def test_bare_duplicate_reference_anchor_is_rejected(self):
         report_text = (
+            '<a id="references"></a>\n'
+            "## References\n\n"
             '<a id="ref-source-a"></a>\n'
             "1. Source A\n\n"
             '<a id="ref-source-a"></a>\n'
@@ -147,6 +151,8 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
     def test_duplicate_reference_number_is_rejected(self):
         report_text = (
+            '<a id="references"></a>\n'
+            "## References\n\n"
             '<a id="ref-source-a"></a>\n'
             "1. Source A\n\n"
             '<a id="ref-source-b"></a>\n'
@@ -159,6 +165,8 @@ class ValidateReportReferenceTests(unittest.TestCase):
 
     def test_reference_number_sequence_must_be_contiguous(self):
         report_text = (
+            '<a id="references"></a>\n'
+            "## References\n\n"
             '<a id="ref-source-a"></a>\n'
             "1. Source A\n\n"
             '<a id="ref-source-b"></a>\n'
@@ -168,6 +176,97 @@ class ValidateReportReferenceTests(unittest.TestCase):
         _, issues = self.reference_index(report_text)
 
         self.assertIn("report.reference_number_sequence_invalid", self.issue_codes(issues))
+
+    def test_reference_numbers_must_follow_references_order(self):
+        report_text = (
+            '<a id="references"></a>\n'
+            "## References\n\n"
+            '<a id="ref-source-b"></a>\n'
+            "2. Source B\n\n"
+            '<a id="ref-source-a"></a>\n'
+            "1. Source A\n"
+        )
+
+        _, issues = self.reference_index(report_text)
+
+        self.assertIn("report.reference_number_sequence_invalid", self.issue_codes(issues))
+
+    def test_references_anchor_is_required(self):
+        report_text = '<a id="ref-source-a"></a>\n1. Source A\n'
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({}, index)
+        self.assertIn("report.references_section_missing", self.issue_codes(issues))
+
+    def test_references_anchor_must_be_unique(self):
+        report_text = (
+            '<a id="references"></a>\n'
+            "## References\n\n"
+            '<a id="ref-source-a"></a>\n'
+            "1. Source A\n\n"
+            '<a id="references"></a>\n'
+            "## Duplicate References\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({}, index)
+        self.assertIn("report.references_section_duplicate", self.issue_codes(issues))
+
+    def test_reference_entry_before_references_is_not_indexed(self):
+        report_text = (
+            '<a id="ref-source-a"></a>\n'
+            "1. Source A\n\n"
+            '<a id="references"></a>\n'
+            "## References\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({}, index)
+        self.assertIn(
+            "report.reference_entry_outside_references",
+            self.issue_codes(issues),
+        )
+
+    def test_references_anchor_requires_a_section_heading(self):
+        report_text = (
+            '<a id="references"></a>\n\n'
+            '<a id="ref-source-a"></a>\n'
+            "1. Source A\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({}, index)
+        self.assertIn("report.references_heading_missing", self.issue_codes(issues))
+
+    def test_references_must_be_the_terminal_report_section(self):
+        report_text = self.valid_report() + (
+            "\n<a id=\"appendix\"></a>\n"
+            "## Appendix\n\n"
+            "Supporting detail.\n"
+        )
+
+        _, issues = self.reference_index(report_text)
+
+        self.assertIn("report.references_section_not_terminal", self.issue_codes(issues))
+
+    def test_reference_entry_after_later_section_is_not_indexed(self):
+        report_text = self.valid_report() + (
+            "\n## Appendix\n\n"
+            '<a id="ref-source-b"></a>\n'
+            "2. Source B\n"
+        )
+
+        index, issues = self.reference_index(report_text)
+
+        self.assertEqual({"ref-source-a": 1}, index)
+        self.assertIn(
+            "report.reference_entry_outside_references",
+            self.issue_codes(issues),
+        )
 
     def test_reference_link_target_must_exist(self):
         report_text = "Claim [1](#ref-missing).\n"
@@ -179,6 +278,8 @@ class ValidateReportReferenceTests(unittest.TestCase):
     def test_reference_link_number_must_match_entry(self):
         report_text = (
             "Claim [2](#ref-source-a).\n\n"
+            '<a id="references"></a>\n'
+            "## References\n\n"
             '<a id="ref-source-a"></a>\n'
             "1. Source A\n"
         )
@@ -217,6 +318,27 @@ class ValidateReportReferenceTests(unittest.TestCase):
         issues = self.validate_references(report_text)
 
         self.assertIn("report.critical_source_reference_missing", self.issue_codes(issues))
+
+    def test_reference_in_container_fence_does_not_close_critical_source(self):
+        fenced_examples = (
+            "> ```markdown\n> [1](#ref-source-a)\n> ```",
+            "- ```markdown\n  [1](#ref-source-a)\n  ```",
+            "- item\n    ```markdown\n    [1](#ref-source-a)\n    ```",
+            "> - ```markdown\n>   [1](#ref-source-a)\n>   ```",
+        )
+        for fenced_example in fenced_examples:
+            with self.subTest(fenced_example=fenced_example):
+                report_text = self.valid_report(findings_reference=False).replace(
+                    "The result is supported.",
+                    f"The result is supported.\n\n{fenced_example}",
+                )
+
+                issues = self.validate_references(report_text)
+
+                self.assertIn(
+                    "report.critical_source_reference_missing",
+                    self.issue_codes(issues),
+                )
 
     def test_comment_syntax_in_fenced_code_does_not_hide_later_references(self):
         report_text = self.valid_report().replace(

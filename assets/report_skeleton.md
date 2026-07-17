@@ -52,6 +52,12 @@ unresolved work, and next actions.
 Record inputs, analysis units, parameters, environment or version evidence,
 generation commands, output paths, and any derived-format handoff.
 
+## Appendix (only when needed)
+
+Put supporting detail here only when it would otherwise obscure the main reader
+path. Keep this section before References so References remains the final
+formal report section.
+
 <a id="references"></a>
 ## References
 
@@ -62,8 +68,3 @@ reader-understandable source description.
 <a id="ref-source-example"></a>
 1. Source author or organization. *Source title*. Stable locator or publication
    details.
-
-## Appendix (only when needed)
-
-Put supporting detail here only when it would otherwise obscure the main reader
-path.

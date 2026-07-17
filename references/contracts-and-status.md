@@ -75,6 +75,13 @@ Close each report-critical join in this order:
 Reference numbers may change when References are reordered; stable anchors and
 manifest `report_reference` values do not.
 
+References is the final formal report section. Put any Appendix before
+References. Reference entries appear in numbered order from 1 through N, and
+only entries inside that terminal References section satisfy a source join.
+Reader-facing citations may appear in any earlier report section. Citations in
+HTML comments or fenced code, including blockquote/list container fences, do
+not satisfy the join.
+
 For computed artifacts, `generation_entry` names an executable path or command.
 For source-native or literature artifacts, use `not_applicable` and retain the
 source join. For manual assembly, use `manual:<instruction path>`; use

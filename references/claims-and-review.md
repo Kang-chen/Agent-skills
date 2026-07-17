@@ -46,7 +46,9 @@ that justified exclusion.
    `report_locator` to its section, `source_ids` to manifest sources, and each
    source's `report_reference` to the References entry. Confirm that the
    located section contains the corresponding numeric reference and record any
-   missing locator, source join, link, or References entry.
+   missing locator, source join, link, or References entry. Confirm that the
+   unique References chapter is the final formal report section and that its
+   entries run from 1 through N in their visible order.
 2. **Science review:** assess design, analysis unit, leakage, statistics,
    alternatives, claim level, and null interpretation. Require it for
    report-critical causal/mechanistic/clinical/generalization/recommendation or

@@ -102,6 +102,18 @@ class SkillReferenceContractTests(unittest.TestCase):
             self.assertEqual(link.group("number"), entry.group("number"))
             self.assertTrue(entry.group("description").strip())
 
+        headings = list(re.finditer(r"(?m)^##[ \t]+(?P<title>\S.*)$", self.skeleton))
+        references_heading = next(
+            heading for heading in headings if heading.group("title") == "References"
+        )
+        self.assertEqual(references_heading, headings[-1])
+        appendix_heading = next(
+            heading
+            for heading in headings
+            if heading.group("title").startswith("Appendix")
+        )
+        self.assertLess(appendix_heading.start(), references_heading.start())
+
     def test_inventory_recipe_keeps_sources_and_evidence_records_distinct(self):
         inventory_match = re.search(
             r"2\. \*\*Inventory:\*\*(?P<body>.*?)\n3\. \*\*Plan the story:\*\*",
@@ -147,6 +159,23 @@ class SkillReferenceContractTests(unittest.TestCase):
         )
         self.assertIn("not an automatic rewrite", self.contracts)
 
+    def test_skill_and_contract_define_terminal_ordered_references(self):
+        combined_contract = " ".join(
+            (self.skill + "\n" + self.contracts).lower().split()
+        )
+        self.assertIn(
+            "references is the final formal report section",
+            combined_contract,
+        )
+        self.assertIn(
+            "reference entries appear in numbered order from 1 through n",
+            combined_contract,
+        )
+        self.assertIn(
+            "appendix before references",
+            combined_contract,
+        )
+
     def test_fresh_reader_reviews_are_self_contained_and_reference_aware(self):
         claim_review_match = re.search(
             r"3\. \*\*Fresh-reader review:\*\*(?P<body>.*?)\n4\. \*\*Visual review:\*\*",
@@ -175,6 +204,15 @@ class SkillReferenceContractTests(unittest.TestCase):
         self.assertEqual(
             "references",
             reference_requirements["reference_section_anchor"],
+        )
+        self.assertTrue(reference_requirements["reference_section_must_be_terminal"])
+        self.assertEqual(
+            "1..N_in_entry_order",
+            reference_requirements["reference_number_order"],
+        )
+        self.assertIn(
+            "container_fenced_code",
+            reference_requirements["non_reader_visible_contexts"],
         )
 
         sidecar_requirements = requirements["persistent_sidecars"]

@@ -37,6 +37,10 @@ reference for each source joined through its evidence rows. Write it as
 This keeps the reader path self-contained while the evidence sidecar retains
 the claim-level audit relationships.
 
+Place optional appendices before References. Keep one terminal References
+chapter, with entries numbered 1 through N in visible order; do not place
+ordinary report headings or reference entries after it.
+
 ## Figure-first default
 
 Each main Figure has a card in `evidence.tsv` containing its question,

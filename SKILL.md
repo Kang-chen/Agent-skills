@@ -72,6 +72,8 @@ null, or inconclusive.
    Preserve scientific hedging, numbers, directions, limitations, and terms.
    Build one numbered References list from the manifest source references;
    display numbers follow list order while stable anchors do not change.
+   References is the final formal report section, and reference entries appear
+   in numbered order from 1 through N. Put any Appendix before References.
 5. **Review and validate:** perform separate claim-coverage, fresh-reader, and
    visual checks when applicable. Confirm that each report-critical section's
    numeric references close through manifest sources to the evidence sidecar.
