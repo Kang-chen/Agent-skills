@@ -78,6 +78,14 @@ EMPTY_VALUES = frozenset({"", "not_applicable", "not_available"})
 EXPLICIT_REPORT_ANCHOR = re.compile(
     r'(?m)^[ \t]*<a[ \t]+id="([a-z0-9]+(?:-[a-z0-9]+)*)"></a>[ \t]*$'
 )
+REFERENCE_LINK = re.compile(
+    r"\[(?P<number>[1-9][0-9]*)\]\(#(?P<anchor>ref-[a-z0-9]+(?:-[a-z0-9]+)*)\)"
+)
+REFERENCE_ENTRY = re.compile(
+    r'(?m)^<a id="(?P<anchor>ref-[a-z0-9]+(?:-[a-z0-9]+)*)"></a>[ \t]*\n'
+    r'(?P<number>[1-9][0-9]*)\.[ \t]+(?P<text>\S.*)$'
+)
+INTERNAL_EVIDENCE_MARKER = re.compile(r"\[E:[^\]\n]+\]")
 
 
 @dataclass(frozen=True)
@@ -267,6 +275,151 @@ def _validate_report_locator(
     return []
 
 
+def _reference_index(
+    report_text: str,
+) -> tuple[dict[str, int], list[ValidationIssue]]:
+    """Index numbered reference entries and validate their report links."""
+
+    index: dict[str, int] = {}
+    numbers: dict[int, str] = {}
+    issues: list[ValidationIssue] = []
+
+    for entry in REFERENCE_ENTRY.finditer(report_text):
+        anchor = entry.group("anchor")
+        number = int(entry.group("number"))
+        if anchor in index:
+            issues.append(
+                _issue(
+                    "report.reference_anchor_duplicate",
+                    f"Reference anchor is declared more than once: {anchor}",
+                    f"report.md#{anchor}",
+                )
+            )
+        else:
+            index[anchor] = number
+        if number in numbers:
+            issues.append(
+                _issue(
+                    "report.reference_number_duplicate",
+                    f"Reference number is assigned more than once: {number}",
+                    f"report.md#{anchor}",
+                )
+            )
+        else:
+            numbers[number] = anchor
+
+    ordered_numbers = sorted(numbers)
+    if ordered_numbers and ordered_numbers != list(range(1, len(ordered_numbers) + 1)):
+        issues.append(
+            _issue(
+                "report.reference_number_sequence_invalid",
+                "Reference entry numbers must form a contiguous sequence starting at 1",
+                "report.md",
+            )
+        )
+
+    for link in REFERENCE_LINK.finditer(report_text):
+        anchor = link.group("anchor")
+        number = int(link.group("number"))
+        entry_number = index.get(anchor)
+        if entry_number is None:
+            issues.append(
+                _issue(
+                    "report.reference_target_unknown",
+                    f"Reference link targets an unknown anchor: {anchor}",
+                    f"report.md#{anchor}",
+                )
+            )
+        elif number != entry_number:
+            issues.append(
+                _issue(
+                    "report.reference_number_mismatch",
+                    f"Reference link number {number} does not match entry {entry_number}",
+                    f"report.md#{anchor}",
+                )
+            )
+    return index, issues
+
+
+def _section_text(report_text: str, anchor: str) -> str | None:
+    """Return one explicitly anchored report section, excluding later sections."""
+
+    if anchor.startswith("ref-"):
+        return None
+    anchors = list(EXPLICIT_REPORT_ANCHOR.finditer(report_text))
+    start_position: int | None = None
+    for position, match in enumerate(anchors):
+        if match.group(1) == anchor:
+            start_position = position
+            break
+    if start_position is None:
+        return None
+
+    start = anchors[start_position].start()
+    end = len(report_text)
+    for match in anchors[start_position + 1 :]:
+        if not match.group(1).startswith("ref-"):
+            end = match.start()
+            break
+    return report_text[start:end]
+
+
+def _validate_report_references(
+    rows: list[dict[str, str]],
+    sources: dict[str, dict[str, Any]],
+    report_text: str,
+    report_name: str,
+) -> list[ValidationIssue]:
+    """Validate reference structure and report-critical source closure."""
+
+    reference_index, issues = _reference_index(report_text)
+    report_prefix = f"{report_name}#"
+    reference_locator_pattern = re.compile(
+        rf"{re.escape(report_name)}#(?P<anchor>ref-[a-z0-9]+(?:-[a-z0-9]+)*)"
+    )
+
+    for position, row in enumerate(rows, start=2):
+        if row.get("report_critical") != "true":
+            continue
+        evidence_locator = f"evidence.tsv:{position}"
+        report_locator = row.get("report_locator", "").strip()
+        section_anchor = report_locator.removeprefix(report_prefix)
+        section_text = (
+            _section_text(report_text, section_anchor)
+            if report_locator.startswith(report_prefix)
+            else None
+        )
+
+        for source_id in _split_ids(row.get("source_ids")):
+            source = sources.get(source_id)
+            report_reference = source.get("report_reference") if source else None
+            reference_match = (
+                reference_locator_pattern.fullmatch(report_reference)
+                if isinstance(report_reference, str)
+                else None
+            )
+            reference_anchor = (
+                reference_match.group("anchor") if reference_match is not None else None
+            )
+            reference_number = (
+                reference_index.get(reference_anchor) if reference_anchor is not None else None
+            )
+            expected_link = (
+                f"[{reference_number}](#{reference_anchor})"
+                if reference_number is not None and reference_anchor is not None
+                else None
+            )
+            if section_text is None or expected_link is None or expected_link not in section_text:
+                issues.append(
+                    _issue(
+                        "report.critical_source_reference_missing",
+                        f"Report-critical source is not referenced in its section: {source_id}",
+                        evidence_locator,
+                    )
+                )
+    return issues
+
+
 def _source_index(
     manifest: dict[str, Any],
     package_root: Path,
@@ -349,14 +502,6 @@ def _validate_evidence_rows(
             issues.append(_issue("evidence.critical_invalid", "report_critical must be true or false", locator))
         if row.get("support_status") not in allowed_support:
             issues.append(_issue("evidence.support_status_invalid", "Invalid support_status", locator))
-        if row.get("report_critical") == "true" and f"[E:{record_id}]" not in report_text:
-            issues.append(
-                _issue(
-                    "report.critical_record_unlinked",
-                    f"Report-critical evidence ID is not linked in prose: {record_id}",
-                    locator,
-                )
-            )
         issues.extend(
             _validate_report_locator(
                 row,
@@ -545,6 +690,14 @@ def _validate_report_story(report_text: str) -> list[ValidationIssue]:
                     "report.md",
                 )
             )
+    for _ in INTERNAL_EVIDENCE_MARKER.finditer(report_text):
+        issues.append(
+            _issue(
+                "report.internal_evidence_marker_present",
+                "Internal evidence markers are forbidden in reader-facing report text",
+                "report.md",
+            )
+        )
     return issues
 
 
@@ -701,6 +854,14 @@ def validate_report_package(
         report_path.name,
     )
     issues.extend(record_issues)
+    issues.extend(
+        _validate_report_references(
+            rows,
+            source_index,
+            report_text,
+            report_path.name,
+        )
+    )
     issues.extend(_validate_source_pair_sets(records, source_index))
     issues.extend(_validate_report_story(report_text))
     issues.extend(_validate_handoff(manifest))
