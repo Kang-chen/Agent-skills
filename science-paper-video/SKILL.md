@@ -45,3 +45,16 @@ Allow aliases such as `VirTues` → `Virtues`, `H&E` → `H E`, and `0.823` → 
 ## Deliverables
 
 Return the editable deck, final video, narration audio, SRT/ASS, `video-project.json`, alignment JSON, provenance manifest, and QA report. Report the exact video resolution, duration, audio format, subtitle cue count, and unresolved subjective checks such as voice preference.
+## Stable subtitle contract
+
+Treat timing, semantic cue boundaries, and visual line wrapping as separate layers:
+
+1. Create one timed cue per reviewed sentence. A two-line subtitle is one cue with a `lines` field, not two timed cues.
+2. Keep technical notation in `narration_display` exactly as reviewed: for example `AUROC`, `0.823`, `5.14%`, `CD4`, and `VirTues`.
+3. Keep pronunciation aliases and Chinese number readings only in `tts_text`. Apply display corrections through an explicit reviewed override map; never globally convert Chinese number words.
+4. Verify FunASR output against `tts_text` at normalized atomic-character level. Accept token merges only when content is identical; reject missing, added, or changed content.
+5. Map reviewed sentence boundaries to actual aligned-token boundaries. If a boundary falls inside one alignment token, stop for review.
+6. Add lead/tail padding from each sentence's own speech span. Resolve overlap at the midpoint between adjacent speech spans; never shift later cues cumulatively.
+7. Wrap long sentences into at most two visual lines, preferring punctuation or whitespace and preserving technical tokens. Use a compact two-line style and a translucent subtitle box for stable contrast.
+
+Run `scripts/adapt_narrator_storyboard.py` only for legacy narrator bundles. It converts the existing storyboard and TTS manifest into the video input contract; it does not reinterpret the paper or extract figures.

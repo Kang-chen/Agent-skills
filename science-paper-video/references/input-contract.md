@@ -25,3 +25,6 @@
 ```
 
 Paths resolve from the JSON file. `figures_verified` must be true. Each scene needs non-empty display and TTS text, one audio file, and at least one frame with a positive fraction. Figure provenance stays in the upstream narrator bundle and is referenced, not copied into a second ledger.
+## Reviewed display overrides
+
+For legacy bundles, pass a JSON object keyed by scene ID to `scripts/adapt_narrator_storyboard.py --display-overrides`. Values replace only `narration_display`; they never replace `tts_text`. Use this explicit review layer for digits, percentages, formulas, capitalization, and technical names. Omitted scenes retain the narrator bundle text.

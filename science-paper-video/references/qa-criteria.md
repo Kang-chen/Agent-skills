@@ -25,3 +25,12 @@
 - Verify video dimensions, frame rate, codec, duration, audio sample rate, and channel count with `ffprobe`.
 - Compare video duration with the sum of scene audio and declared gaps.
 - Preserve alignment JSON and editable subtitles beside the burned-in MP4.
+## Stable subtitle acceptance
+
+- Each cue equals one reviewed sentence; no cue may end at a comma, colon, or arbitrary character limit.
+- A visual line break is stored in `lines` and does not create another timed cue.
+- Displayed technical notation is checked against the reviewed display layer, including digits, decimal points, percent signs, capitalization, and aliases.
+- Forced-alignment atoms must equal normalized `tts_text`; token merges are allowed, content differences are errors.
+- Record raw speech spans and padded cue spans. Lead and tail padding must be local to each sentence and clipped at adjacent speech midpoints.
+- Reject one-line overflow, more than two visual lines, a split inside an ASCII technical token, or a sentence boundary inside one alignment token.
+- Inspect a dense two-line cue over a visually busy slide and a cue containing numeric/technical notation in the exported video.

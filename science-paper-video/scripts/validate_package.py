@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from pathlib import Path
+
+
+SENTENCE_END = re.compile(r".+?(?:[\u3002\uff01\uff1f!?]+|$)", re.DOTALL)
 
 
 def validate_project_contract(project: dict, base: Path, require_files: bool = False) -> None:
@@ -47,6 +51,9 @@ def validate_alignment(project: dict, aligned: dict) -> dict:
         cues = item.get("cues") or []
         if "".join(cue["text"] for cue in cues) != scene["narration_display"]:
             raise ValueError(f"Subtitle cues differ from reviewed narration for {scene['id']}.")
+        expected_units = SENTENCE_END.findall(scene["narration_display"])
+        if [cue["text"] for cue in cues] != expected_units:
+            raise ValueError(f"Subtitle cues do not follow reviewed sentence boundaries for {scene['id']}.")
         previous_end = -1.0
         for cue in cues:
             start, end = float(cue["start"]), float(cue["end"])
@@ -54,6 +61,9 @@ def validate_alignment(project: dict, aligned: dict) -> dict:
                 raise ValueError(f"Invalid subtitle timing for {scene['id']}.")
             if end > float(item["duration_seconds"]) + 0.25:
                 raise ValueError(f"Subtitle exceeds audio for {scene['id']}.")
+            lines = cue.get("lines") or [cue["text"]]
+            if len(lines) > 2 or "".join(lines) != cue["text"]:
+                raise ValueError(f"Invalid visual subtitle lines for {scene['id']}.")
             previous_end = end
             cue_count += 1
     return {"scenes": len(project["scenes"]), "subtitle_cues": cue_count}

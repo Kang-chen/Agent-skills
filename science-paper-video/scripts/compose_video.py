@@ -15,13 +15,14 @@ def build_global_timeline(project: dict, aligned: dict, gap: float = 0.7) -> tup
     for scene in project["scenes"]:
         item = by_id[scene["id"]]
         for cue in item["cues"]:
-            cues.append(
-                {
-                    "start": round(cursor + float(cue["start"]), 3),
-                    "end": round(cursor + float(cue["end"]), 3),
-                    "text": cue["text"],
-                }
-            )
+            global_cue = {
+                "start": round(cursor + float(cue["start"]), 3),
+                "end": round(cursor + float(cue["end"]), 3),
+                "text": cue["text"],
+            }
+            if "lines" in cue:
+                global_cue["lines"] = list(cue["lines"])
+            cues.append(global_cue)
         cursor += float(item["duration_seconds"]) + gap
     return cues, round(cursor, 3)
 
@@ -53,8 +54,9 @@ def to_srt(cues: list[dict]) -> str:
 
 def to_ass(cues: list[dict], width: int, height: int) -> str:
     font_size = max(38, round(height * 0.036))
+    compact_size = 74 if height >= 2160 else max(36, round(height * 0.034))
     margin = round(height * 0.038)
-    header = [
+    output = [
         "[Script Info]",
         "ScriptType: v4.00+",
         f"PlayResX: {width}",
@@ -64,19 +66,25 @@ def to_ass(cues: list[dict], width: int, height: int) -> str:
         "",
         "[V4+ Styles]",
         "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding",
-        f"Style: Default,Microsoft YaHei,{font_size},&H00FFFFFF,&H000000FF,&H00101010,&H8A000000,0,0,0,0,100,100,0,0,1,5,2,2,{margin},{margin},{margin},1",
+        f"Style: Default,Microsoft YaHei,{font_size},&H00FFFFFF,&H000000FF,&H00101010,&H8A000000,0,0,0,0,100,100,0,0,3,6,0,2,{margin},{margin},{margin},1",
         "",
         "[Events]",
         "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
     ]
     for cue in cues:
-        text = str(cue["text"]).replace("{", r"\{").replace("}", r"\}").replace("\n", r"\N")
-        header.append(
+        lines = cue.get("lines") or [cue["text"]]
+        if len(lines) > 2 or "".join(lines) != cue["text"]:
+            raise ValueError("Subtitle visual lines must preserve cue text in at most two lines.")
+        escaped = [
+            str(line).replace("{", r"\{").replace("}", r"\}").replace("\n", r"\N")
+            for line in lines
+        ]
+        prefix = rf"{{\fs{compact_size}}}" if len(lines) == 2 else ""
+        text = prefix + r"\N".join(escaped)
+        output.append(
             f"Dialogue: 0,{_ass_time(cue['start'])},{_ass_time(cue['end'])},Default,,0,0,0,,{text}"
         )
-    return "\n".join(header) + "\n"
-
-
+    return "\n".join(output) + "\n"
 def run(command: list[str], cwd: Path | None = None) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
