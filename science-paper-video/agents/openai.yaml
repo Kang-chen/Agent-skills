@@ -1,0 +1,4 @@
+interface:
+  display_name: "Science Paper Video"
+  short_description: "Turn verified paper narratives into narrated videos"
+  default_prompt: "Use $science-paper-video to turn this verified paper narrative bundle into a narrated PPT-style video."
