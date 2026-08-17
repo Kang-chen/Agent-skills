@@ -1,0 +1,4 @@
+interface:
+  display_name: "科学论文叙事解读"
+  short_description: "把复杂科研论文写成严谨、易读、层层推进的中文技术解读"
+  default_prompt: "Use $science-paper-narrator to turn this paper into a rigorous Chinese narrative explainer."
