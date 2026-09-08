@@ -8,7 +8,7 @@
 
 Auth: 从环境变量读取 developer token, 优先 H_TOKEN, 回退 HYPOTHESIS_API_TOKEN.
       默认 group 过滤可用 HYPOTHESIS_GROUP 环境变量(可选)。
-Token 只从 env 读取, 从不打印明文。
+Token 优先从 env 读取, 未设置时回退到 ~/.config/hypothesis/token.env, 从不打印明文。
 
 Endpoints used (https://api.hypothes.is/api):
   GET /annotations/{id}                     单条读取
