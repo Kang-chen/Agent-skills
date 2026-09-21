@@ -54,14 +54,19 @@ axes, direction, legend, color, overlap, type size, and caption consistency.
 
 Use `scientific-visualization` during Figure execution for measured-data
 Figures. Keep its publication-quality and accessibility checks, while following
-the current project's language and style rules.
+the current project's language and style rules. The families, minimum counts,
+naming, and in-image rules are in [figure-slate.md](figure-slate.md).
 
-## Table-led override
+## Table-led evidence
 
-Use a Table-led story when tables, schemas, deterministic logs, or algorithmic
-gates are the direct evidence. Record the reason in the manifest override. Do
-not manufacture a decorative Figure to satisfy the default. Give each main
-Table the same question, source, generation, boundary, locator, and QA links.
+Use a Table when tables, schemas, deterministic logs, or algorithmic gates are
+the direct evidence, and give each main Table the same question, source,
+generation, boundary, locator, and QA links. A Table replaces a Figure only for
+that specific piece of evidence; it never discharges the minimum figure slate in
+[figure-slate.md](figure-slate.md), because the schematic, input-description,
+and diagnostic families explain the process rather than the outcome. Do not
+manufacture a decorative Figure either: if a planned Figure has no question, cut
+it and replace it with one that does.
 
 ## Fresh-reader check
 
