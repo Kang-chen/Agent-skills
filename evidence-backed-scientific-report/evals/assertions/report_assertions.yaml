@@ -1,0 +1,52 @@
+schema_version: 1
+case_assertions:
+  - case_id: synthetic-response-report
+    prompt_ids: [report.synthetic-response.v1]
+    assertion_ids:
+      - chinese-canonical-markdown
+      - english-figure-text
+      - exact-group-arithmetic
+      - association-claim-ceiling
+      - stable-source-map
+      - explicit-evidence-gaps
+      - reader-facing-references
+      - evidence-ledger-closure
+report_requirements:
+  canonical_format: markdown
+  report_language: zh
+  report_language_source: user_explicit
+  figure_text_language: en
+  claim_ceiling: association
+  required_values:
+    Control_mean: 1.0000
+    Treatment_mean: 1.5833
+    difference: 0.5833
+  forbidden_wording:
+    - causal
+    - clinical_generalization
+  reader_facing_references:
+    forbidden_internal_marker_pattern: '\[E:[^]]+\]'
+    required_link_pattern: '\[[1-9][0-9]*\]\(#ref-[a-z0-9-]+\)'
+    reference_section_anchor: references
+    reference_section_must_be_terminal: true
+    reference_heading_styles: [atx, setext]
+    reference_number_order: 1..N_in_entry_order
+    fenced_code_indent_policy: fail_closed_any_leading_whitespace
+    fenced_code_close_policy: ordered_opener_container_context_only
+    fenced_code_container_state: ordered_immutable_sequence
+    fenced_code_closing_indent_policy: opener_base..opener_base_plus_3_columns
+    fenced_code_tab_policy: expand_entire_line_from_absolute_column_0_to_4_column_stops
+    non_reader_visible_contexts:
+      - html_comment
+      - fenced_code
+      - container_fenced_code
+    require_numeric_reference_for_report_critical_sources: true
+  persistent_sidecars:
+    evidence_ledger_path: manifests/evidence.tsv
+    evidence_ledger_required: true
+    source_manifest_path: manifests/report_manifest.yaml
+    source_manifest_schema_version: 2
+    required_closure:
+      - evidence.report_locator_to_report_section
+      - evidence.source_ids_to_manifest_sources
+      - manifest.report_reference_to_references_anchor

@@ -1,0 +1,53 @@
+schema_version: 1
+cases:
+  - case_id: trigger-substantive-new-report
+    prompt_id: trigger.substantive-new-report.v1
+    category: substantive_new_report
+    expected_trigger: true
+    prompt: Create a complete scientific report from the registered synthetic fixture.
+    fixture_locator: fixtures/synthetic_response_study
+  - case_id: trigger-substantive-revise
+    prompt_id: trigger.substantive-revise.v1
+    category: substantive_revise
+    expected_trigger: true
+    prompt: Revise the synthetic report's evidence structure, claims, tables, and source mapping.
+    fixture_locator: fixtures/synthetic_response_study
+  - case_id: trigger-table-led
+    prompt_id: trigger.table-led.v1
+    category: table_led
+    expected_trigger: true
+    prompt: Build a scientific report led by the registered response-by-sample table.
+    fixture_locator: fixtures/synthetic_response_study/data/response_by_sample.csv
+  - case_id: near-miss-single-figure
+    prompt_id: near-miss.single-figure.v1
+    category: single_figure
+    expected_trigger: false
+    prompt: Make one Figure from the registered synthetic table.
+    fixture_locator: fixtures/synthetic_response_study/data/response_by_sample.csv
+  - case_id: near-miss-single-doi
+    prompt_id: near-miss.single-doi.v1
+    category: single_doi
+    expected_trigger: false
+    prompt: Format this single DOI citation for a bibliography.
+  - case_id: near-miss-one-line-polish
+    prompt_id: near-miss.one-line-polish.v1
+    category: one_line_polish
+    expected_trigger: false
+    prompt: Polish one sentence from the synthetic report.
+  - case_id: near-miss-docx-conversion
+    prompt_id: near-miss.docx-conversion.v1
+    category: pure_docx_conversion
+    expected_trigger: false
+    prompt: Convert the completed Markdown report to DOCX without changing content.
+    source_locator: outputs/report.md
+  - case_id: near-miss-report-audit
+    prompt_id: near-miss.report-audit.v1
+    category: report_only_audit
+    expected_trigger: false
+    prompt: Audit the completed report read-only and return findings only.
+    source_locator: outputs/report.md
+  - case_id: near-miss-pr-review
+    prompt_id: near-miss.pr-review.v1
+    category: pr_review
+    expected_trigger: false
+    prompt: Review a pull request that happens to modify a report file.

@@ -1,0 +1,13 @@
+schema_version: 1
+fixture_id: synthetic-response-study
+sources:
+  - source_id: synthetic-analysis-plan-v1
+    kind: analysis_plan
+    locator: sources/analysis_plan.md
+    availability: available
+    expected_identity_behavior: preserve_stable_source_id_and_exact_locator
+  - source_id: synthetic-methods-v1
+    kind: methods
+    locator: sources/methods.md
+    availability: available
+    expected_identity_behavior: preserve_stable_source_id_and_exact_locator

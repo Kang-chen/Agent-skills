@@ -1,0 +1,17 @@
+schema_version: 1
+cases:
+  - case_id: synthetic-response-report
+    prompt_id: report.synthetic-response.v1
+    prompt: >-
+      请基于已注册的 synthetic response fixture 生成一份中文 canonical
+      Markdown 科学报告。报告须引用可用 source，给出两组 descriptive arithmetic，
+      明确 association claim ceiling，并将 Figure text 保持为 English。
+    fixture_locator: fixtures/synthetic_response_study
+    source_locators:
+      - fixtures/synthetic_response_study/sources/analysis_plan.md
+      - fixtures/synthetic_response_study/sources/methods.md
+    output_locator: outputs/report.md
+    canonical_format: markdown
+    report_language: zh
+    report_language_source: user_explicit
+    docx_is_derived_handoff: true

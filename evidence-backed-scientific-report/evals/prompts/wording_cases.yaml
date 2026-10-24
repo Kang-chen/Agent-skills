@@ -1,0 +1,96 @@
+schema_version: 1
+private_evaluator_injection_contract:
+  payload_source_field: private_injection_payload
+  digest_algorithm: sha256
+  serialization:
+    renderer: decoded-yaml-scalar-utf8-v1
+    encoding: utf-8
+    line_endings: lf
+    terminal_newline: false
+    unicode_normalization: none
+  neutral_evaluator_framing:
+    arm_invariant: true
+    placement: separate_from_payload
+    text: Follow the exact private evaluator payload between the registered boundaries; if it is empty, apply no additional evaluator guidance.
+targets:
+  - target_id: description-trigger
+    evaluation_target: Skill description triggering behavior
+    arms:
+      - arm: no_guidance
+        prompt_id: wording.description-trigger.v1
+        prompt_sha256: b40f3f69e84f732c94f6d62f450a5209161dc2acdfb1675b1cdc079124edabae
+        private_treatment_id: wording.description-trigger.no-guidance.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: ""
+        repetitions: 5
+        prompt: Produce a complete evidence-backed report from the registered synthetic fixture.
+      - arm: old_baseline
+        prompt_id: wording.description-trigger.v1
+        prompt_sha256: b40f3f69e84f732c94f6d62f450a5209161dc2acdfb1675b1cdc079124edabae
+        private_treatment_id: wording.description-trigger.old-baseline.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: Creates and revises evidence-backed scientific reports with traceable sources, measured-data figures, review gates, and delivery validation.
+        repetitions: 5
+        prompt: Produce a complete evidence-backed report from the registered synthetic fixture.
+      - arm: candidate
+        prompt_id: wording.description-trigger.v1
+        prompt_sha256: b40f3f69e84f732c94f6d62f450a5209161dc2acdfb1675b1cdc079124edabae
+        private_treatment_id: wording.description-trigger.candidate.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: Use this workflow when the task is to create a new scientific report or substantively revise an existing complete report.
+        repetitions: 5
+        prompt: Produce a complete evidence-backed report from the registered synthetic fixture.
+  - target_id: oid-compatibility
+    evaluation_target: OID compatibility wording
+    arms:
+      - arm: no_guidance
+        prompt_id: wording.oid-compatibility.v1
+        prompt_sha256: 6784e0253cd6a8d6538cb0283d3e679d6b294c18bf4cc7cfa96e1e8bfd6c64a0
+        private_treatment_id: wording.oid-compatibility.no-guidance.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: ""
+        repetitions: 5
+        prompt: Preserve stable source identity while generating the registered synthetic report.
+      - arm: old_baseline
+        prompt_id: wording.oid-compatibility.v1
+        prompt_sha256: 6784e0253cd6a8d6538cb0283d3e679d6b294c18bf4cc7cfa96e1e8bfd6c64a0
+        private_treatment_id: wording.oid-compatibility.old-baseline.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: Treat Origin, Interpretation, and Disposition as descriptive roles recorded in the registered evidence-row schema.
+        repetitions: 5
+        prompt: Preserve stable source identity while generating the registered synthetic report.
+      - arm: candidate
+        prompt_id: wording.oid-compatibility.v1
+        prompt_sha256: 6784e0253cd6a8d6538cb0283d3e679d6b294c18bf4cc7cfa96e1e8bfd6c64a0
+        private_treatment_id: wording.oid-compatibility.candidate.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: Enforce registered enums and validate every Origin × Interpretation × Disposition tuple against the compatibility matrix before report use.
+        repetitions: 5
+        prompt: Preserve stable source identity while generating the registered synthetic report.
+  - target_id: reader-glossary-shaping
+    evaluation_target: Reader glossary shaping
+    arms:
+      - arm: no_guidance
+        prompt_id: wording.reader-glossary.v1
+        prompt_sha256: f697020996304d10cfcb9d12dc6e22b1924e405f7cea349946045285288947fd
+        private_treatment_id: wording.reader-glossary.no-guidance.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: ""
+        repetitions: 5
+        prompt: Make the registered synthetic report understandable to its intended reader.
+      - arm: old_baseline
+        prompt_id: wording.reader-glossary.v1
+        prompt_sha256: f697020996304d10cfcb9d12dc6e22b1924e405f7cea349946045285288947fd
+        private_treatment_id: wording.reader-glossary.old-baseline.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: Write sections for question, answer, evidence, methods, limitations, glossary, status, and handoff; define every technical term and follow the full sequence.
+        repetitions: 5
+        prompt: Make the registered synthetic report understandable to its intended reader.
+      - arm: candidate
+        prompt_id: wording.reader-glossary.v1
+        prompt_sha256: f697020996304d10cfcb9d12dc6e22b1924e405f7cea349946045285288947fd
+        private_treatment_id: wording.reader-glossary.candidate.v1
+        treatment_visibility: private_evaluator
+        private_injection_payload: Shape the report so its reader can quickly find the question, answer, main evidence, entry point, limitations, and status; add glossary terms only when needed.
+        repetitions: 5
+        prompt: Make the registered synthetic report understandable to its intended reader.

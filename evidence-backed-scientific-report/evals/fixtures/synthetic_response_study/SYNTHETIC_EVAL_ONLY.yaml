@@ -1,0 +1,14 @@
+fixture_id: synthetic-response-study
+synthetic: true
+evaluation_only: true
+contains_real_patient_data: false
+contains_restricted_data: false
+report_language: zh
+figure_text_language: en
+analysis_unit: sample
+groups:
+  - Control
+  - Treatment
+sample_n_per_group: 12
+claim_ceiling: association
+generation_entry: fixtures/synthetic_response_study/scripts/generate_report_inputs.py

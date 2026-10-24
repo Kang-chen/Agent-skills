@@ -1,0 +1,89 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: run-record-v1
+title: Evidence-backed scientific report evaluation run record
+type: object
+additionalProperties: true
+required:
+  - run_id
+  - phase
+  - arm
+  - case_id
+  - prompt_sha256
+  - fresh_context
+  - raw_output_path
+  - private_audit_log_path
+  - run_record_pending_sha256
+  - private_audit_log_sha256
+  - blind_interaction_transcript_path
+  - blind_interaction_transcript_sha256
+  - transcript_capture_status
+  - blind_interaction_turn_count
+  - forbidden_identity_token_count
+  - forbidden_identity_tokens_sha256
+  - blind_neutrality_status
+  - blind_neutrality_policy_sha256
+  - artifact_paths
+  - artifact_sha256
+  - artifact_roles
+  - record_status
+  - selected_option
+  - action_taken
+  - rationale_verbatim
+  - started_at
+  - finished_at
+properties:
+  run_id: {type: string, minLength: 1}
+  phase: {enum: [RED, GREEN, latest-HEAD]}
+  arm: {type: string, minLength: 1}
+  case_id: {type: string, minLength: 1}
+  prompt_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  fresh_context: {const: true}
+  raw_output_path: {const: raw_output.md}
+  private_audit_log_path: {const: private_audit_log.jsonl}
+  run_record_pending_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  private_audit_log_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  blind_interaction_transcript_path: {const: transcript.md}
+  blind_interaction_transcript_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  transcript_capture_status: {const: complete}
+  blind_interaction_turn_count: {type: integer, minimum: 1}
+  forbidden_identity_token_count: {type: integer, minimum: 1}
+  forbidden_identity_tokens_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  blind_neutrality_status: {const: passed}
+  blind_neutrality_policy_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  artifact_paths:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items: {type: string, minLength: 1}
+  artifact_sha256:
+    type: object
+    minProperties: 1
+    additionalProperties: {type: string, pattern: "^[0-9a-f]{64}$"}
+  artifact_roles:
+    type: object
+    minProperties: 1
+    additionalProperties:
+      enum:
+        - raw_output
+        - interaction_transcript
+        - rationale
+        - report_markdown
+        - review_markdown
+        - handoff_markdown
+        - csv_table
+        - tsv_evidence
+        - yaml_metadata
+        - json_assertion_evidence
+        - json_blinded_metrics
+        - pdf_figure
+        - png_figure
+  record_status: {const: complete}
+  selected_option: {type: string, minLength: 1}
+  action_taken: {type: string, minLength: 1}
+  rationale_verbatim: {type: string, minLength: 1}
+  wording_target_id: {type: string, minLength: 1}
+  private_treatment_id: {type: string, minLength: 1}
+  injection_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+  repetition_index: {type: integer, minimum: 1, maximum: 5}
+  started_at: {type: string, minLength: 1}
+  finished_at: {type: string, minLength: 1}

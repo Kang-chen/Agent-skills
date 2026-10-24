@@ -1,0 +1,227 @@
+schema_version: 1
+case_ids: &case_ids
+  - synthetic-response-report
+  - source-gap-under-deadline
+  - disputed-null-under-authority
+  - language-and-docx-scope-creep
+  - manual-output-claimed-automated
+  - trigger-substantive-new-report
+  - trigger-substantive-revise
+  - trigger-table-led
+  - near-miss-single-figure
+  - near-miss-single-doi
+  - near-miss-one-line-polish
+  - near-miss-docx-conversion
+  - near-miss-report-audit
+  - near-miss-pr-review
+  - description-trigger
+  - oid-compatibility
+  - reader-glossary-shaping
+prompt_ids: &prompt_ids
+  - report.synthetic-response.v1
+  - pressure.source-gap.v1
+  - pressure.disputed-null.v1
+  - pressure.language-docx.v1
+  - pressure.manual-automation.v1
+  - trigger.substantive-new-report.v1
+  - trigger.substantive-revise.v1
+  - trigger.table-led.v1
+  - near-miss.single-figure.v1
+  - near-miss.single-doi.v1
+  - near-miss.one-line-polish.v1
+  - near-miss.docx-conversion.v1
+  - near-miss.report-audit.v1
+  - near-miss.pr-review.v1
+  - wording.description-trigger.v1
+  - wording.oid-compatibility.v1
+  - wording.reader-glossary.v1
+prompt_sha256_by_id:
+  report.synthetic-response.v1: 8b4069f29e0771461cf47eca40b978467d21868eca180db583cfef1b513196a4
+  pressure.source-gap.v1: 1d0be0bc5aca01baf8d0b335e1a3077322a5912272283e1833ada004be3daff7
+  pressure.disputed-null.v1: 08d3c25b820278a5ac86c1fbeb935897c4e643f53b3fcee55abcdf76ec29b4f5
+  pressure.language-docx.v1: 4bb6e6d4de44f8e477c4a8a25e33241ed25e95dcfc024562ad984921dae6f1ad
+  pressure.manual-automation.v1: 3f6b380e67e7742781d9b8c12ad8850d5ab27a4f127062c2279fc8210cff9065
+  trigger.substantive-new-report.v1: 2091016f9431ac277d41ffc46a62ac2db387d611cd97b9c31c1e1789a45c427a
+  trigger.substantive-revise.v1: 2e4bce609ee3a1380202fb963cd675566e3c1845ff69675fe9cd513e321ba4c9
+  trigger.table-led.v1: 078123090fb887c2f465703781d9d8d6594000370f752cd7e0117ac4660baf73
+  near-miss.single-figure.v1: 00c9056810c99918d8bc0cba39d27db2e12ea737a96ce8f68eb8c98469d06618
+  near-miss.single-doi.v1: 8056b3973545222e0a7c05330beca59435a94121d278a0e2fca086ec88283110
+  near-miss.one-line-polish.v1: 5f04a098608f7f497edaeb729ee8444b0ef733bcaf52b3b582210efb827184c1
+  near-miss.docx-conversion.v1: 208967fb7e316cbdf6fa84eb8e8f5e1e66d0df948189db490a5976b2be9d1415
+  near-miss.report-audit.v1: f70a24904dc2aad2ab602b97a2d4d3dc83a7f740ef2f2ebd915e42ffa130a2d2
+  near-miss.pr-review.v1: 4f9934c6725fc0dfd43d764e0a3a670a2154ecbb3a6eb814a15ecb990c5cc7e9
+  wording.description-trigger.v1: b40f3f69e84f732c94f6d62f450a5209161dc2acdfb1675b1cdc079124edabae
+  wording.oid-compatibility.v1: 6784e0253cd6a8d6538cb0283d3e679d6b294c18bf4cc7cfa96e1e8bfd6c64a0
+  wording.reader-glossary.v1: f697020996304d10cfcb9d12dc6e22b1924e405f7cea349946045285288947fd
+wording_treatments:
+  description-trigger:
+    prompt_id: wording.description-trigger.v1
+    private_treatment_ids:
+      - wording.description-trigger.no-guidance.v1
+      - wording.description-trigger.old-baseline.v1
+      - wording.description-trigger.candidate.v1
+    private_treatment_id_by_arm:
+      no_guidance: wording.description-trigger.no-guidance.v1
+      old_baseline: wording.description-trigger.old-baseline.v1
+      candidate: wording.description-trigger.candidate.v1
+    injection_sha256_by_arm:
+      no_guidance: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      old_baseline: 7d6555388fbadaffa7b9e46874cc576dcb0148650e9142141a326586246c16e4
+      candidate: c6fa73f03e25357645b3e4a18f5f02f24b786899c6000e16798f2838fd7101ad
+    assignment_id_template: "wording.{target_id}.{arm}.rep-{repetition_index}"
+    repetitions_per_treatment: 5
+  oid-compatibility:
+    prompt_id: wording.oid-compatibility.v1
+    private_treatment_ids:
+      - wording.oid-compatibility.no-guidance.v1
+      - wording.oid-compatibility.old-baseline.v1
+      - wording.oid-compatibility.candidate.v1
+    private_treatment_id_by_arm:
+      no_guidance: wording.oid-compatibility.no-guidance.v1
+      old_baseline: wording.oid-compatibility.old-baseline.v1
+      candidate: wording.oid-compatibility.candidate.v1
+    injection_sha256_by_arm:
+      no_guidance: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      old_baseline: f392565b28634862af0cea710b9d693edeb0416edc03dc37ab347ccd8ec77cd7
+      candidate: f06691a37f0754c39f9c31ffe7ac88898674a8e5f1c20d5fe93b9ac2ad0806d1
+    assignment_id_template: "wording.{target_id}.{arm}.rep-{repetition_index}"
+    repetitions_per_treatment: 5
+  reader-glossary-shaping:
+    prompt_id: wording.reader-glossary.v1
+    private_treatment_ids:
+      - wording.reader-glossary.no-guidance.v1
+      - wording.reader-glossary.old-baseline.v1
+      - wording.reader-glossary.candidate.v1
+    private_treatment_id_by_arm:
+      no_guidance: wording.reader-glossary.no-guidance.v1
+      old_baseline: wording.reader-glossary.old-baseline.v1
+      candidate: wording.reader-glossary.candidate.v1
+    injection_sha256_by_arm:
+      no_guidance: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      old_baseline: a07715defb5079676abfc336d4d31c388f5464b0d9ec87403753c17c7c70c7b3
+      candidate: 0e30a7309de2cbd3e4018dab94247293edb821cbdf1a37befc262ca607afc5d6
+    assignment_id_template: "wording.{target_id}.{arm}.rep-{repetition_index}"
+    repetitions_per_treatment: 5
+phases:
+  RED:
+    case_ids: *case_ids
+    prompt_ids: *prompt_ids
+    artifact_contract: run-record-v1
+    required_repetitions: {default: 1, wording_arm: 5}
+  GREEN:
+    case_ids: *case_ids
+    prompt_ids: *prompt_ids
+    artifact_contract: run-record-v1
+    required_repetitions: {default: 1, wording_arm: 5}
+  latest-HEAD:
+    case_ids: *case_ids
+    prompt_ids: *prompt_ids
+    artifact_contract: run-record-v1
+    required_repetitions: {default: 1, wording_arm: 5}
+artifact_contracts:
+  run-record-v1:
+    raw_output_path: raw_output.md
+    private_audit_log_path: private_audit_log.jsonl
+    blind_interaction_transcript_path: transcript.md
+    all_paths_run_root_relative: true
+    paths_deduplicated: true
+    transcript_capture_status: complete
+    blind_neutrality_status: passed
+    record_status: complete
+    roles_closed: true
+    role_enum:
+      - raw_output
+      - interaction_transcript
+      - rationale
+      - report_markdown
+      - review_markdown
+      - handoff_markdown
+      - csv_table
+      - tsv_evidence
+      - yaml_metadata
+      - json_assertion_evidence
+      - json_blinded_metrics
+      - pdf_figure
+      - png_figure
+red_matched_run_contract:
+  external_root: /tmp/evidence-backed-scientific-report-evals/runs/red
+  required_run_count: 59
+  pressure:
+    - directory: source-gap-under-deadline
+      case_id: source-gap-under-deadline
+      prompt_id: pressure.source-gap.v1
+    - directory: disputed-null-under-authority
+      case_id: disputed-null-under-authority
+      prompt_id: pressure.disputed-null.v1
+    - directory: language-and-docx-scope-creep
+      case_id: language-and-docx-scope-creep
+      prompt_id: pressure.language-docx.v1
+    - directory: manual-output-claimed-automated
+      case_id: manual-output-claimed-automated
+      prompt_id: pressure.manual-automation.v1
+  substantive:
+    directory: synthetic-zh-report
+    case_id: synthetic-response-report
+    prompt_id: report.synthetic-response.v1
+  trigger:
+    - directory: new-figure-led-report
+      case_id: trigger-substantive-new-report
+      prompt_id: trigger.substantive-new-report.v1
+    - directory: revise-canonical-report
+      case_id: trigger-substantive-revise
+      prompt_id: trigger.substantive-revise.v1
+    - directory: table-led-algorithm-report
+      case_id: trigger-table-led
+      prompt_id: trigger.table-led.v1
+    - directory: single-figure
+      case_id: near-miss-single-figure
+      prompt_id: near-miss.single-figure.v1
+    - directory: single-doi
+      case_id: near-miss-single-doi
+      prompt_id: near-miss.single-doi.v1
+    - directory: one-line-polish
+      case_id: near-miss-one-line-polish
+      prompt_id: near-miss.one-line-polish.v1
+    - directory: pure-docx-conversion
+      case_id: near-miss-docx-conversion
+      prompt_id: near-miss.docx-conversion.v1
+    - directory: report-only-audit
+      case_id: near-miss-report-audit
+      prompt_id: near-miss.report-audit.v1
+    - directory: pr-review
+      case_id: near-miss-pr-review
+      prompt_id: near-miss.pr-review.v1
+  wording:
+    targets:
+      - description-trigger
+      - oid-compatibility
+      - reader-glossary-shaping
+    arms:
+      - no_guidance
+      - old_baseline
+      - candidate
+    repetitions:
+      - rep-01
+      - rep-02
+      - rep-03
+      - rep-04
+      - rep-05
+red_execution_scope:
+  mode: representative
+  status: representative_complete
+  planned_run_count: 59
+  completed_run_count: 1
+  original_matrix_completed: false
+  matrix_completion_claim_allowed: false
+  representative_runs:
+    - relative_path: pressure/source-gap-under-deadline/rep-01
+      failure_label: source-gap-under-deadline/rep-01
+      case_id: source-gap-under-deadline
+      prompt_id: pressure.source-gap.v1
+      arm: no_guidance
+  plan_deviation:
+    original_scope: 59-run matched RED matrix
+    executed_scope: one valid pressure RED run
+    reason: user feedback on time cost
+    stopped_additional_runs: true
+    unexecuted_run_count: 58

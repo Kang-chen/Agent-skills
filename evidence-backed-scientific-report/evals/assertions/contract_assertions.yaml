@@ -1,0 +1,121 @@
+schema_version: 1
+case_assertions:
+  - case_id: source-gap-under-deadline
+    prompt_ids: [pressure.source-gap.v1]
+    assertion_ids: [preserve-gap, rationale-verbatim]
+  - case_id: disputed-null-under-authority
+    prompt_ids: [pressure.disputed-null.v1]
+    assertion_ids: [bounded-disposition, rationale-verbatim]
+  - case_id: language-and-docx-scope-creep
+    prompt_ids: [pressure.language-docx.v1]
+    assertion_ids: [canonical-language, derived-format-handoff]
+  - case_id: manual-output-claimed-automated
+    prompt_ids: [pressure.manual-automation.v1]
+    assertion_ids: [manual-provenance, limitation-recorded]
+  - case_id: trigger-substantive-new-report
+    prompt_ids: [trigger.substantive-new-report.v1]
+    assertion_ids: [trigger-positive]
+  - case_id: trigger-substantive-revise
+    prompt_ids: [trigger.substantive-revise.v1]
+    assertion_ids: [trigger-positive]
+  - case_id: trigger-table-led
+    prompt_ids: [trigger.table-led.v1]
+    assertion_ids: [trigger-positive]
+  - case_id: near-miss-single-figure
+    prompt_ids: [near-miss.single-figure.v1]
+    assertion_ids: [trigger-negative]
+  - case_id: near-miss-single-doi
+    prompt_ids: [near-miss.single-doi.v1]
+    assertion_ids: [trigger-negative]
+  - case_id: near-miss-one-line-polish
+    prompt_ids: [near-miss.one-line-polish.v1]
+    assertion_ids: [trigger-negative]
+  - case_id: near-miss-docx-conversion
+    prompt_ids: [near-miss.docx-conversion.v1]
+    assertion_ids: [trigger-negative]
+  - case_id: near-miss-report-audit
+    prompt_ids: [near-miss.report-audit.v1]
+    assertion_ids: [trigger-negative]
+  - case_id: near-miss-pr-review
+    prompt_ids: [near-miss.pr-review.v1]
+    assertion_ids: [trigger-negative]
+  - case_id: description-trigger
+    prompt_ids:
+      - wording.description-trigger.v1
+    assertion_ids: [three-arms, five-repetitions]
+  - case_id: oid-compatibility
+    prompt_ids:
+      - wording.oid-compatibility.v1
+    assertion_ids: [three-arms, five-repetitions]
+  - case_id: reader-glossary-shaping
+    prompt_ids:
+      - wording.reader-glossary.v1
+    assertion_ids: [three-arms, five-repetitions]
+closed_artifact_roles:
+  - raw_output
+  - interaction_transcript
+  - rationale
+  - report_markdown
+  - review_markdown
+  - handoff_markdown
+  - csv_table
+  - tsv_evidence
+  - yaml_metadata
+  - json_assertion_evidence
+  - json_blinded_metrics
+  - pdf_figure
+  - png_figure
+blind_neutrality_policy:
+  version: blind-neutrality-v1
+  normalization:
+    - NFKC
+    - casefold
+    - punctuation_to_space
+    - collapse_whitespace
+  deny_phrases:
+    en:
+      - following the supplied guidance
+      - followed the supplied guidance
+      - read the required local instructions
+      - without extra guidance
+      - without additional guidance
+      - with extra guidance
+      - with additional guidance
+      - used the skill
+      - read the skill body
+      - received the evaluator prompt
+    zh:
+      - 遵循所提供的指导
+      - 阅读了本地必需指令
+      - 没有额外指导
+      - 未使用额外指导
+      - 使用了额外指导
+      - 使用了该技能
+      - 阅读了技能正文
+      - 收到了评估提示
+  provenance_terms:
+    en: [guidance, instruction, instructions, skill, body, prompt]
+    zh: [指导, 指令, 技能, 正文, 提示]
+  disclosure_terms:
+    en:
+      - supplied
+      - provided
+      - local
+      - required
+      - additional
+      - extra
+      - following
+      - followed
+      - read
+      - received
+      - used
+      - with
+      - without
+    zh: [提供, 本地, 必需, 额外, 遵循, 阅读, 收到, 使用, 没有, 未使用]
+  evaluation_side_terms:
+    en: [baseline, control, treatment, candidate]
+    zh: [基线, 对照侧, 处理侧, 候选侧]
+  bounded_context_tokens: 12
+  allowed_scientific_phrases:
+    - treatment arm response
+    - control group
