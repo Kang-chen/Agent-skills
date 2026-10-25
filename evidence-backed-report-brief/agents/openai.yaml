@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence-Backed Report Brief"
+  short_description: "Turn verified reports into a short decision-first brief"
+  default_prompt: "Use $evidence-backed-report-brief to turn verified scientific reports into a short, decision-first brief with figure cards and deep links."

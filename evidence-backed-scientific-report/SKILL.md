@@ -1,6 +1,6 @@
 ---
 name: evidence-backed-scientific-report
-description: Use when the primary deliverable is a new or substantively revised scientific or technical Markdown report built from real data, analyses, figures, tables, code, or verified literature, and the work requires source traceability, claim boundaries, Figure/Table story planning, or reproducibility handoff. Not for report-only audit, publication conversion, single-Figure plotting, one-line polishing, citation lookup, or pure format conversion.
+description: Use when the primary deliverable is a new or substantively revised scientific or technical Markdown report built from real data, analyses, figures, tables, code, or verified literature, and the work requires source traceability, claim boundaries, Figure/Table story planning, or reproducibility handoff. Not for a short brief or weekly update of reports that already exist, report-only audit, publication conversion, single-Figure plotting, one-line polishing, citation lookup, or pure format conversion.
 ---
 
 # Evidence-Backed Scientific Report
@@ -43,8 +43,11 @@ scientific story, evidence, claims, Figures, Tables, or reproducibility handoff.
 For an existing report, modify the canonical file in place and let Git carry
 versions. Do not create `_v2`, `_new`, or parallel translated copies.
 
-Route a training-plus-report workflow to its domain workflow first. Route a
-single Figure request to `scientific-visualization`, a citation lookup to a
+Route a short brief, progress update, or weekly report built from reports that
+already exist to `evidence-backed-report-brief`; it reads this skill's package
+as its evidence layer. Route a training-plus-report workflow to its domain
+workflow first. Route a single Figure request to `scientific-visualization`,
+a citation lookup to a
 research workflow, a prose-only polish to `stop-slop`, and publication-format
 conversion to the relevant document workflow.
 
@@ -77,6 +80,10 @@ Package layout:
 ├── manifests/evidence.tsv
 └── review/number_checks.tsv   # every number re-derived from its source
 ```
+
+When a brief built with `evidence-backed-report-brief` takes `report.md`, rename
+this report to `report_full.md`, write its manifest locators against that name,
+and pass `--report report_full.md` to both checks.
 
 ## The section slots
 

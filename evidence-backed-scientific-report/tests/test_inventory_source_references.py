@@ -365,5 +365,35 @@ class ManifestSourceReferenceValidationTests(unittest.TestCase):
         self.assertNotIn("manifest.traceability_contract_invalid", codes)
 
 
+    def test_source_reference_follows_renamed_report(self):
+        # 简版占用 report.md 时，完整版改名为 report_full.md，来源引用随之改名
+        source = self.source(report_reference="report_full.md#ref-source-a")
+
+        _, renamed = validator._source_index(
+            self.valid_manifest(sources=[source]),
+            REPOSITORY_ROOT,
+            "report_full.md",
+        )
+        _, default = validator._source_index(
+            self.valid_manifest(sources=[source]),
+            REPOSITORY_ROOT,
+        )
+
+        self.assertNotIn("source.report_reference_invalid", self.issue_codes(renamed))
+        self.assertIn("source.report_reference_invalid", self.issue_codes(default))
+
+    def test_traceability_contract_follows_renamed_report(self):
+        traceability = dict(REFERENCE_TRACEABILITY)
+        traceability["report_locator_format"] = "report_full.md#stable-anchor"
+        traceability["reference_section_locator"] = "report_full.md#references"
+        manifest = self.valid_manifest(traceability=traceability)
+
+        renamed = validator._validate_manifest_shape(manifest, "report_full.md")
+        default = validator._validate_manifest_shape(manifest)
+
+        self.assertNotIn("manifest.traceability_contract_invalid", self.issue_codes(renamed))
+        self.assertIn("manifest.traceability_contract_invalid", self.issue_codes(default))
+
+
 if __name__ == "__main__":
     unittest.main()
