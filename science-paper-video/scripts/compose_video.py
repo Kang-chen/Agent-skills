@@ -52,10 +52,62 @@ def to_srt(cues: list[dict]) -> str:
     return "\n\n".join(blocks) + "\n"
 
 
-def to_ass(cues: list[dict], width: int, height: int) -> str:
-    font_size = max(38, round(height * 0.036))
-    compact_size = 74 if height >= 2160 else max(36, round(height * 0.034))
+DEFAULT_SUBTITLE_FONT = "Noto Sans CJK SC"
+SUBTITLE_STYLES = ("outline", "box")
+# 2026-11-11 在 2560x1440 实测可读的透明描边样式；其他分辨率按高度等比缩放
+_REFERENCE_HEIGHT = 1440
+_OUTLINE_FONT_SIZE = 64
+_OUTLINE_COMPACT_SIZE = 60
+_OUTLINE_WIDTH = 2.5
+_OUTLINE_SHADOW = 1.0
+
+
+def _scaled(value: float, height: int) -> float:
+    return value * height / _REFERENCE_HEIGHT
+
+
+def subtitle_style_line(
+    height: int,
+    font: str = DEFAULT_SUBTITLE_FONT,
+    font_size: int | None = None,
+    style: str = "outline",
+) -> str:
+    """Return the ASS Default style: transparent outline (default) or translucent box."""
+
+    if style not in SUBTITLE_STYLES:
+        raise ValueError(f"Unknown subtitle style {style!r}; choose one of {SUBTITLE_STYLES}.")
     margin = round(height * 0.038)
+    if style == "outline":
+        # 白字粗体，纯黑描边，半透明黑阴影，BorderStyle=1 无底框；描边过粗会糊字
+        size = font_size or round(_scaled(_OUTLINE_FONT_SIZE, height))
+        outline = round(_scaled(_OUTLINE_WIDTH, height), 2)
+        shadow = round(_scaled(_OUTLINE_SHADOW, height), 2)
+        colours, bold, border = "&H00FFFFFF,&H000000FF,&H00000000,&H96000000", -1, f"1,{outline:g},{shadow:g}"
+    else:
+        size = font_size or max(38, round(height * 0.036))
+        colours, bold, border = "&H00FFFFFF,&H000000FF,&H00101010,&H8A000000", 0, "3,6,0"
+    return (
+        f"Style: Default,{font},{size},{colours},{bold},0,0,0,100,100,0,0,{border},2,"
+        f"{margin},{margin},{margin},1"
+    )
+
+
+def default_compact_size(height: int, style: str = "outline") -> int:
+    if style == "outline":
+        return round(_scaled(_OUTLINE_COMPACT_SIZE, height))
+    return 74 if height >= 2160 else max(36, round(height * 0.034))
+
+
+def to_ass(
+    cues: list[dict],
+    width: int,
+    height: int,
+    font: str = DEFAULT_SUBTITLE_FONT,
+    font_size: int | None = None,
+    compact_size: int | None = None,
+    style: str = "outline",
+) -> str:
+    compact = compact_size or default_compact_size(height, style)
     output = [
         "[Script Info]",
         "ScriptType: v4.00+",
@@ -66,7 +118,7 @@ def to_ass(cues: list[dict], width: int, height: int) -> str:
         "",
         "[V4+ Styles]",
         "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding",
-        f"Style: Default,Microsoft YaHei,{font_size},&H00FFFFFF,&H000000FF,&H00101010,&H8A000000,0,0,0,0,100,100,0,0,3,6,0,2,{margin},{margin},{margin},1",
+        subtitle_style_line(height, font=font, font_size=font_size, style=style),
         "",
         "[Events]",
         "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
@@ -79,12 +131,14 @@ def to_ass(cues: list[dict], width: int, height: int) -> str:
             str(line).replace("{", r"\{").replace("}", r"\}").replace("\n", r"\N")
             for line in lines
         ]
-        prefix = rf"{{\fs{compact_size}}}" if len(lines) == 2 else ""
+        prefix = rf"{{\fs{compact}}}" if len(lines) == 2 else ""
         text = prefix + r"\N".join(escaped)
         output.append(
             f"Dialogue: 0,{_ass_time(cue['start'])},{_ass_time(cue['end'])},Default,,0,0,0,,{text}"
         )
     return "\n".join(output) + "\n"
+
+
 def run(command: list[str], cwd: Path | None = None) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
@@ -98,6 +152,13 @@ def main() -> None:
     parser.add_argument("--gap", type=float, default=0.7)
     parser.add_argument("--crf", type=int, default=18)
     parser.add_argument("--preset", default="medium")
+    parser.add_argument("--subtitle-font", default=DEFAULT_SUBTITLE_FONT)
+    parser.add_argument("--subtitle-size", type=int, help="One-line font size; default scales 64 px at 1440p.")
+    parser.add_argument("--subtitle-compact-size", type=int, help="Two-line font size; default scales 60 px at 1440p.")
+    parser.add_argument(
+        "--subtitle-style", choices=SUBTITLE_STYLES, default="outline",
+        help="outline: transparent background with outline and shadow (default); box: translucent box.",
+    )
     args = parser.parse_args()
 
     project = json.loads(args.project.read_text(encoding="utf-8-sig"))
@@ -156,7 +217,13 @@ def main() -> None:
     srt = output / f"{args.name}.srt"
     ass = output / f"{args.name}.ass"
     srt.write_text(to_srt(cues), encoding="utf-8")
-    ass.write_text(to_ass(cues, width, height), encoding="utf-8")
+    ass.write_text(
+        to_ass(
+            cues, width, height, font=args.subtitle_font, font_size=args.subtitle_size,
+            compact_size=args.subtitle_compact_size, style=args.subtitle_style,
+        ),
+        encoding="utf-8",
+    )
     final = output / f"{args.name}.mp4"
     run(
         [

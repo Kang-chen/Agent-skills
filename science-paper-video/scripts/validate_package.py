@@ -10,14 +10,25 @@ from pathlib import Path
 
 
 SENTENCE_END = re.compile(r".+?(?:[\u3002\uff01\uff1f!?]+|$)", re.DOTALL)
+DEFAULT_PRODUCERS = ("science-paper-narrator",)
 
 
-def validate_project_contract(project: dict, base: Path, require_files: bool = False) -> None:
+def validate_project_contract(
+    project: dict,
+    base: Path,
+    require_files: bool = False,
+    allowed_producers: tuple[str, ...] = DEFAULT_PRODUCERS,
+) -> None:
     if project.get("schema_version") != 1:
         raise ValueError("Unsupported video-project schema_version.")
     source = project.get("source_bundle", {})
-    if source.get("producer") != "science-paper-narrator":
-        raise ValueError("source_bundle must come from science-paper-narrator.")
+    producer = source.get("producer")
+    if producer not in allowed_producers:
+        raise ValueError(
+            f"source_bundle producer {producer!r} is not allowed; expected one of "
+            f"{list(allowed_producers)}. For an already reviewed in-house report, set the producer "
+            "(e.g. 'reviewed-report') and pass --allow-producer explicitly."
+        )
     if source.get("figures_verified") is not True:
         raise ValueError("Verified high-resolution figure crops are required.")
     canvas = project.get("canvas", {})
@@ -85,11 +96,18 @@ def main() -> None:
     parser.add_argument("alignment", type=Path)
     parser.add_argument("--video", type=Path)
     parser.add_argument("--report", type=Path)
+    parser.add_argument(
+        "--allow-producer", action="append", default=[], metavar="NAME",
+        help="Also accept this source_bundle.producer (repeatable), e.g. reviewed-report.",
+    )
     args = parser.parse_args()
+    allowed = (*DEFAULT_PRODUCERS, *args.allow_producer)
     project = json.loads(args.project.read_text(encoding="utf-8-sig"))
     aligned = json.loads(args.alignment.read_text(encoding="utf-8-sig"))
-    validate_project_contract(project, args.project.parent, require_files=True)
+    validate_project_contract(project, args.project.parent, require_files=True, allowed_producers=allowed)
     report = validate_alignment(project, aligned)
+    report["source_producer"] = project["source_bundle"]["producer"]
+    report["timing_policy"] = aligned.get("timing_policy")
     if args.video:
         report["media"] = probe_video(args.video)
     output = json.dumps(report, ensure_ascii=False, indent=2)
