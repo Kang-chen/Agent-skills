@@ -35,7 +35,17 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("one timed cue per reviewed sentence", text)
         self.assertIn("normalized atomic-character level", text)
         self.assertIn("explicit reviewed override map", text)
-        self.assertIn("translucent subtitle box", text)
+        self.assertIn("transparent background", text)
+
+    def test_skill_makes_sentence_timeline_the_default_and_records_fa_zh_defect(self):
+        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        qa = (ROOT / "references" / "qa-criteria.md").read_text(encoding="utf-8")
+
+        self.assertIn("Default timing path", text)
+        self.assertIn("scripts/sentence_timeline.py build", text)
+        self.assertIn("2026-11-11", text)
+        self.assertIn("2026-11-11", qa)
+        self.assertIn("never rescale", text)
     def test_alignment_keeps_reviewed_display_text(self):
         align = load_script("align_subtitles.py")
         display = "VirTues 的 AUROC 为 0.823。"
@@ -90,17 +100,38 @@ class SkillContractTests(unittest.TestCase):
         self.assertEqual(cues[1]["speech_end"], 1.2)
         self.assertLess(cues[0]["end"], cues[1]["start"])
 
-    def test_ass_style_uses_translucent_box_for_consistent_contrast(self):
+    def test_ass_default_style_is_transparent_outline_validated_at_1440p(self):
+        compose = load_script("compose_video.py")
+        ass = compose.to_ass(
+            [{"start": 0.0, "end": 2.0, "text": "caption", "lines": ["caption"]}],
+            2560,
+            1440,
+        )
+
+        style = next(line for line in ass.splitlines() if line.startswith("Style: Default,"))
+        fields = style.removeprefix("Style: ").split(",")
+        self.assertEqual(fields[1:3], ["Noto Sans CJK SC", "64"])
+        self.assertEqual(fields[5], "&H00000000")
+        self.assertEqual(fields[7], "-1")
+        self.assertEqual(fields[15:18], ["1", "2.5", "1"])
+
+    def test_ass_box_style_and_custom_font_remain_available(self):
         compose = load_script("compose_video.py")
         ass = compose.to_ass(
             [{"start": 0.0, "end": 2.0, "text": "caption", "lines": ["caption"]}],
             3840,
             2160,
+            font="Microsoft YaHei",
+            font_size=80,
+            style="box",
         )
 
         style = next(line for line in ass.splitlines() if line.startswith("Style: Default,"))
         fields = style.removeprefix("Style: ").split(",")
+        self.assertEqual(fields[1:3], ["Microsoft YaHei", "80"])
         self.assertEqual(fields[15:18], ["3", "6", "0"])
+        with self.assertRaises(ValueError):
+            compose.to_ass([], 3840, 2160, style="neon")
 
     def test_global_timeline_preserves_visual_line_layout(self):
         compose = load_script("compose_video.py")
@@ -127,9 +158,11 @@ class SkillContractTests(unittest.TestCase):
             {"start": 0.0, "end": 3.0, "text": "firstsecond", "lines": ["first", "second"]}
         ]
 
-        ass = compose.to_ass(cues, 3840, 2160)
+        ass = compose.to_ass(cues, 2560, 1440)
+        box = compose.to_ass(cues, 3840, 2160, style="box")
 
-        self.assertIn(r"{\fs74}first\Nsecond", ass)
+        self.assertIn(r"{\fs60}first\Nsecond", ass)
+        self.assertIn(r"{\fs74}first\Nsecond", box)
         self.assertEqual(ass.count("Dialogue:"), 1)
 
     def test_visual_wrapping_prefers_punctuation_over_balanced_word_split(self):

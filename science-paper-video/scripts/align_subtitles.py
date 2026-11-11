@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
+import wave
+from array import array
 from pathlib import Path
 from typing import Sequence
 
@@ -12,6 +15,9 @@ from typing import Sequence
 SENTENCE_END = re.compile(r".+?(?:[\u3002\uff01\uff1f!?]+|$)", re.DOTALL)
 ALIGN_TOKEN = re.compile(r"[A-Za-z0-9]+|[\u3400-\u9fff]")
 PREFERRED_LINE_BREAK = set("\uff0c\uff1b\uff1a\u3001,;: ")
+# fa-zh 时间轴漂移的容忍上限：超过任一阈值即判定对齐失败
+MAX_DRIFT_SECONDS = 0.5
+MAX_DRIFT_RATIO = 0.03
 
 
 def tokenize_for_alignment(text: str) -> list[str]:
@@ -80,6 +86,79 @@ def split_display_lines(text: str, max_chars: int = 45) -> list[str]:
     if "".join(lines) != text:
         raise AssertionError("Visual wrapping changed reviewed narration.")
     return lines
+
+
+def read_mono_samples(path: Path) -> tuple[list[float], int]:
+    """Read audio as mono floats in [-1, 1]; soundfile if installed, else 16-bit mono WAV."""
+
+    try:
+        import soundfile
+    except ImportError:
+        soundfile = None
+    if soundfile is not None:
+        # 多声道取均值，与 FunASR 读到的单声道内容一致
+        data, rate = soundfile.read(str(path), dtype="float32", always_2d=True)
+        return data.mean(axis=1).tolist(), int(rate)
+    with wave.open(str(path), "rb") as handle:
+        if handle.getsampwidth() != 2 or handle.getnchannels() != 1:
+            raise ValueError(
+                f"{path} must be 16-bit mono PCM WAV; convert with "
+                "`ffmpeg -i in.wav -ac 1 -c:a pcm_s16le out.wav`."
+            )
+        pcm = array("h")
+        pcm.frombytes(handle.readframes(handle.getnframes()))
+        rate = handle.getframerate()
+    return [value / 32768.0 for value in pcm], rate
+
+
+def speech_bounds(
+    samples: Sequence[float],
+    rate: int,
+    threshold: float = 0.02,
+    window_seconds: float = 0.02,
+) -> tuple[float, float]:
+    """Return first and last voiced time (seconds) by short-time RMS energy."""
+
+    # 短时能量：窗口 RMS 不低于最大 RMS 的 threshold 倍即视为有声
+    window = max(1, int(rate * window_seconds))
+    count = len(samples) // window
+    if count == 0:
+        return 0.0, len(samples) / rate
+    rms = [
+        math.sqrt(sum(value * value for value in samples[i * window:(i + 1) * window]) / window)
+        for i in range(count)
+    ]
+    peak = max(rms)
+    voiced = [i for i, value in enumerate(rms) if peak > 0 and value >= threshold * peak]
+    if not voiced:
+        return 0.0, len(samples) / rate
+    step = window / rate
+    return round(voiced[0] * step, 3), round((voiced[-1] + 1) * step, 3)
+
+
+def check_alignment_drift(
+    last_token_end: float,
+    energy_speech_end: float,
+    audio_duration: float,
+    max_seconds: float = MAX_DRIFT_SECONDS,
+    max_ratio: float = MAX_DRIFT_RATIO,
+) -> float:
+    """Reject a forced alignment whose time axis disagrees with the audio energy.
+
+    Measured on 2026-11-11: fa-zh compressed Doubao TTS 2.0 audio by about 9%
+    (last token end at 0.90-0.93 of the audio length), so later subtitles led
+    the voice. There is no safe proportional fix; use sentence_timeline.py.
+    """
+
+    drift = energy_speech_end - last_token_end
+    if abs(drift) > max_seconds or abs(drift) > max_ratio * audio_duration:
+        raise ValueError(
+            f"Forced-alignment drift {drift:+.2f} s: last token ends at {last_token_end:.2f} s "
+            f"but speech energy ends at {energy_speech_end:.2f} s (audio {audio_duration:.2f} s; "
+            f"limits {max_seconds} s or {max_ratio:.0%}). Do not rescale by character count; "
+            "synthesize one clip per sentence and run scripts/sentence_timeline.py instead."
+        )
+    return drift
 
 
 def _alignment_atoms(text: str) -> list[str]:
@@ -195,12 +274,13 @@ def main() -> None:
     parser.add_argument("--model", default="fa-zh")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--max-chars", type=int, default=45, help="Maximum visual width per subtitle line.")
+    parser.add_argument("--max-drift-seconds", type=float, default=MAX_DRIFT_SECONDS)
+    parser.add_argument("--max-drift-ratio", type=float, default=MAX_DRIFT_RATIO)
     args = parser.parse_args()
     project = json.loads(args.project.read_text(encoding="utf-8-sig"))
     base = args.project.parent
 
     from funasr import AutoModel
-    import soundfile
 
     model = AutoModel(model=args.model, device=args.device, disable_update=True)
     segments = []
@@ -210,7 +290,17 @@ def main() -> None:
             input=(str(audio), scene["tts_text"]), data_type=("sound", "text")
         )[0]
         tokens = str(result["text"]).split()
-        duration = float(soundfile.info(str(audio)).duration)
+        samples, rate = read_mono_samples(audio)
+        duration = len(samples) / rate
+        # 漂移自检：fa-zh 末 token 结束时间须与能量检测的语音结束时间一致
+        _, energy_end = speech_bounds(samples, rate)
+        last_token_end = int(result["timestamp"][-1][1]) / 1000.0
+        try:
+            drift = check_alignment_drift(
+                last_token_end, energy_end, duration, args.max_drift_seconds, args.max_drift_ratio
+            )
+        except ValueError as error:
+            raise SystemExit(f"{scene['id']}: {error}") from error
         cues = build_cues(
             scene["narration_display"],
             scene["tts_text"],
@@ -226,6 +316,7 @@ def main() -> None:
                 "tts_text": scene["tts_text"],
                 "audio_file": scene["audio_file"],
                 "duration_seconds": round(duration, 3),
+                "alignment_drift_seconds": round(drift, 3),
                 "cues": cues,
             }
         )
@@ -238,5 +329,7 @@ def main() -> None:
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 if __name__ == "__main__":
     main()
