@@ -28,6 +28,7 @@ from align_subtitles import (
     split_caption_units,
     split_display_lines,
 )
+from compose_video import max_line_units
 
 TIMING_POLICY = "per-sentence-tts-audio"
 
@@ -79,7 +80,7 @@ def build_scene(
     scene: dict,
     sentence_dir: Path,
     pause: float,
-    max_chars: int,
+    max_chars: float,
 ) -> tuple[bytes, int, dict]:
     """Concatenate one scene's sentence clips and time each cue from its clip."""
 
@@ -144,8 +145,12 @@ def build_timeline(
     base: Path,
     sentence_dir: Path,
     pause: float = 0.3,
-    max_chars: int = 45,
+    max_chars: float | None = None,
 ) -> dict:
+    """Build per-scene audio and alignment; ``max_chars`` defaults to the canvas line width."""
+
+    if max_chars is None:
+        max_chars = project_line_units(project)
     segments = []
     for scene in project["scenes"]:
         pcm, rate, segment = build_scene(scene, sentence_dir, pause, max_chars)
@@ -161,6 +166,13 @@ def build_timeline(
     }
 
 
+def project_line_units(project: dict) -> int:
+    """Default subtitle line width for the project's canvas and default subtitle size."""
+
+    canvas = project["canvas"]
+    return max_line_units(int(canvas["width"]), int(canvas["height"]))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -172,7 +184,11 @@ def main() -> None:
     build.add_argument("--sentence-dir", type=Path, required=True)
     build.add_argument("--output", type=Path, required=True)
     build.add_argument("--pause", type=float, default=0.3, help="Silence between sentences, seconds.")
-    build.add_argument("--max-chars", type=int, default=45, help="Maximum visual width per subtitle line.")
+    build.add_argument(
+        "--max-chars", type=float, default=None,
+        help="Maximum visual width per subtitle line (CJK = 1, ASCII = 0.56); "
+        "default derives from canvas width, subtitle font size and margins.",
+    )
     args = parser.parse_args()
 
     project = json.loads(args.project.read_text(encoding="utf-8-sig"))

@@ -101,6 +101,19 @@ class ComposeEndToEndTests(unittest.TestCase):
             self.assertEqual((video_stream["width"], video_stream["height"]), (320, 180))
             self.assertEqual(audio_stream["sample_rate"], "48000")
             self.assertEqual(audio_stream["channels"], 1)
+            # loudnorm 不指定输出采样率时旁白 wav 会是 192 kHz
+            narration = json.loads(
+                subprocess.run(
+                    [
+                        "ffprobe", "-v", "error", "-show_entries", "stream=sample_rate",
+                        "-of", "json", str(output / "e2e-narration.wav"),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout
+            )
+            self.assertEqual(narration["streams"][0]["sample_rate"], "48000")
 
 
 if __name__ == "__main__":
