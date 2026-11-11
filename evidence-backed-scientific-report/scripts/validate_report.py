@@ -86,9 +86,7 @@ REFERENCE_ENTRY = re.compile(
     r'(?P<number>[1-9][0-9]*)\.[ \t]+(?P<text>\S.*)$'
 )
 INTERNAL_EVIDENCE_MARKER = re.compile(r"\[E:[^\]\n]+\]")
-SOURCE_REPORT_REFERENCE = re.compile(
-    r"report\.md#ref-[a-z0-9]+(?:-[a-z0-9]+)*"
-)
+SOURCE_REFERENCE_ANCHOR = r"#ref-[a-z0-9]+(?:-[a-z0-9]+)*"
 FENCED_CODE_START = re.compile(
     r"^(?P<indent>[ \t]*)(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
 )
@@ -207,7 +205,10 @@ def _resolved_path(package_root: Path, locator: str) -> Path | None:
     return candidate
 
 
-def _validate_manifest_shape(manifest: dict[str, Any]) -> list[ValidationIssue]:
+def _validate_manifest_shape(
+    manifest: dict[str, Any],
+    report_name: str = "report.md",
+) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     if manifest.get("schema_version") != 2:
         issues.append(
@@ -256,12 +257,12 @@ def _validate_manifest_shape(manifest: dict[str, Any]) -> list[ValidationIssue]:
         )
     traceability = manifest.get("traceability")
     expected_traceability = {
-        "report_locator_format": "report.md#stable-anchor",
+        "report_locator_format": f"{report_name}#stable-anchor",
         "explicit_anchor_syntax": '<a id="stable-anchor"></a>',
         "require_explicit_anchors": True,
         "reference_link_format": "[N](#ref-stable-anchor)",
         "reference_anchor_syntax": '<a id="ref-stable-anchor"></a>',
-        "reference_section_locator": "report.md#references",
+        "reference_section_locator": f"{report_name}#references",
         "require_source_references": True,
     }
     if traceability != expected_traceability:
@@ -789,7 +790,9 @@ def _validate_report_references(
 def _source_index(
     manifest: dict[str, Any],
     package_root: Path,
+    report_name: str = "report.md",
 ) -> tuple[dict[str, dict[str, Any]], list[ValidationIssue]]:
+    source_report_reference = re.compile(re.escape(report_name) + SOURCE_REFERENCE_ANCHOR)
     index: dict[str, dict[str, Any]] = {}
     report_reference_owners: dict[str, str] = {}
     issues: list[ValidationIssue] = []
@@ -828,12 +831,12 @@ def _source_index(
                     )
                 )
         elif not isinstance(report_reference, str) or (
-            SOURCE_REPORT_REFERENCE.fullmatch(report_reference) is None
+            source_report_reference.fullmatch(report_reference) is None
         ):
             issues.append(
                 _issue(
                     "source.report_reference_invalid",
-                    "Source report reference must use report.md#ref-stable-anchor",
+                    f"Source report reference must use {report_name}#ref-stable-anchor",
                     locator,
                 )
             )
@@ -1229,7 +1232,7 @@ def validate_report_package(
         )
 
     package_root = report_path.parent
-    issues.extend(_validate_manifest_shape(manifest))
+    issues.extend(_validate_manifest_shape(manifest, report_path.name))
     if header != EVIDENCE_COLUMNS:
         issues.append(
             _issue(
@@ -1246,7 +1249,7 @@ def validate_report_package(
                 str(evidence_path),
             )
         )
-    source_index, source_issues = _source_index(manifest, package_root)
+    source_index, source_issues = _source_index(manifest, package_root, report_path.name)
     issues.extend(source_issues)
     records, record_issues = _validate_evidence_rows(
         rows,
