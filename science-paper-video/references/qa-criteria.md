@@ -22,14 +22,15 @@
 - With forced alignment, the last cue's `speech_end` must reach the end of audible speech. fa-zh failed this on 2026-11-11 (Doubao TTS 2.0 about 9% short; Kokoro-82M similar); treat a drift error as a blocker.
 - Spot-check the last cue of the longest scene by ear in the rendered video.
 - Keep cue times monotonic, non-overlapping, positive, and within scene duration.
-- Target no more than two lines and roughly 24 Chinese characters per cue.
-- Record local TTS model and voice provenance. Do not silently use an online service.
+- Keep each cue within two visual lines; line width is `scripts/align_subtitles.py --max-chars` (default 45 width units per line). If a reviewed sentence cannot fit, revise the narration instead of splitting the timed cue.
+- Record the TTS engine or service, model version, and voice. Name any online service in the QA report; never use one silently.
 
 ## Media package
 
 - Verify video dimensions, frame rate, codec, duration, audio sample rate, and channel count with `ffprobe`.
 - Compare video duration with the sum of scene audio and declared gaps.
 - Preserve alignment JSON and editable subtitles beside the burned-in MP4.
+
 ## Stable subtitle acceptance
 
 - Each cue equals one reviewed sentence; no cue may end at a comma, colon, or arbitrary character limit.
