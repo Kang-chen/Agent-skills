@@ -13,7 +13,7 @@ Treat `science-paper-narrator` as the only source for paper interpretation, scie
 
 ## Resource use policy
 
-Everything in these videos is for personal study and research, with no commercial use.
+Everything in these videos is for personal study and research, with no commercial use. The rules below apply to third-party figures (papers, preprints, other people's work). Figures from your own or in-house reports are exempt from the opening-page sentence and the "unmodified original" rule.
 
 - Show this sentence, verbatim, at the bottom of the video's opening page: `所有figure和资源仅用于个人学习和研究，不进行任何商业行为`
 - Show the paper's original figures directly and leave them unmodified: no repainting, masking, or relabeling. Zooming, panning, moving the figure aside, and a highlight box are display choices. Explanatory animation sits beside the figure, not on top of it. For a no-derivatives licence, prefer the whole figure plus zoom; if a panel crop is needed for legibility, keep its label, axes, and legend, name the panel in the credit, and tell the user.
@@ -38,6 +38,12 @@ Keep three fields separate:
 
 Prefer a TTS service that is available now, such as Doubao TTS 2.0 (online). A local open-source engine such as Kokoro-82M is acceptable when no such service is available. Either way, record the engine or service name, model version, voice, and speed, and name any online service in the QA report.
 
+## Scope before building a long video
+
+- Plan the main storyline first: at most about 7 main figures; supporting schematics and formula slides are unlimited. Do not make appendix figures unless asked.
+- Aim for about 1.5-2.5 min per chapter (one main figure per chapter). Write the chapter table (order, folder, main figure, supporting images) before building anything.
+- Order the whole video like a lab meeting, cause before effect: background, problem, method, results, limits.
+
 ## Workflow
 
 1. Validate the narrator bundle. If it is incomplete, invoke `science-paper-narrator`.
@@ -45,8 +51,20 @@ Prefer a TTS service that is available now, such as Doubao TTS 2.0 (online). A l
 3. Compose 16:9 slides from verified crops. Keep plot labels, legends, axes, units, panel letters, statistical marks, and required controls readable at the target resolution.
 4. Default timing path, sentence by sentence: run `scripts/sentence_timeline.py plan` to get one TTS request per reviewed sentence, synthesize each to `<sentence-dir>/<scene>_<NN>.wav`, then run `scripts/sentence_timeline.py build`. It concatenates the clips per scene (0.3 s pause) and writes `alignment.json` with each cue taken from its own clip's real start and end. Record the TTS model, voice, speed, sentence text, duration, and file hash.
 5. Use `scripts/align_subtitles.py` (FunASR fa-zh forced alignment) only for audio that cannot be synthesized per sentence. It stops when its last token and the audio energy disagree by more than 0.5 s or 3%; then switch to step 4, never rescale.
-6. Render PPTX, WAV, SRT/ASS, and MP4 from one timeline with `scripts/compose_video.py`. Subtitles default to a transparent background: bold white `Noto Sans CJK SC`, black outline, light shadow (64 px one line, 60 px two lines at 1440p, scaled with height); `--subtitle-style box` restores the translucent box. Never estimate subtitle timing from character counts.
-7. Run `scripts/validate_package.py` and the checks in [references/qa-criteria.md](references/qa-criteria.md). Inspect representative frames at original resolution before delivery. For an already reviewed in-house report, set `source_bundle.producer` to `reviewed-report` and pass `--allow-producer reviewed-report`; the default stays strict.
+6. Render PPTX, WAV, SRT/ASS, and MP4 from one timeline with `scripts/compose_video.py`. Subtitles default to a transparent background: bold white `Noto Sans CJK SC`, black outline, light shadow (64 px one line, 60 px two lines at 1440p, scaled with height); `--subtitle-style box` restores the translucent box. The narration WAV is loudness-normalized at 48 kHz. Never estimate subtitle timing from character counts.
+7. Run `scripts/asr_readback.py` on the sentence clips: it transcribes each clip, compares it with `tts_text`, and hides same-pinyin homophones, so what remains are likely misreadings. Listen to each, fix `tts_text`, re-synthesize only those sentences. The ASR engine is optional (FunASR `paraformer-zh` by default, or `--transcripts` from any engine); rendering never needs it.
+8. Run `scripts/validate_package.py` and the checks in [references/qa-criteria.md](references/qa-criteria.md). Inspect representative frames at original resolution before delivery. For an already reviewed in-house report, set `source_bundle.producer` to `reviewed-report` and pass `--allow-producer reviewed-report`; the default stays strict.
+
+## Figure walkthroughs and chapter series
+
+For videos that explain report figures one by one, write one `storyboard.json` per chapter ([references/storyboard.md](references/storyboard.md)) and build with `scripts/build_series.py chapter <dir>...`. It renders frames with `scripts/figure_walkthrough.py` (highlight boxes, dimming, coloured cards, per-frame image swap), runs per-sentence TTS through `--tts-command` (re-synthesizes only sentences whose text changed), times cues with `sentence_timeline.py build`, moves each highlight to the moment its sentence starts (`figure_walkthrough.py retime`), and composes the chapter. `build_series.py concat` joins chapters and merges subtitles. Draw colour-coded formulas with `scripts/math_row.py` (`draw_math_row`).
+
+## In-house reviewed reports
+
+A `producer: reviewed-report` source has no narrator bundle, so add the checks the narrator would have done:
+
+- Per chapter, a `facts.md` ledger: every number and claim in the narration with its source as `file:line` (or table plus filter).
+- An independent review of the narration (for example Codex), given falsifiable claims ("the denominator of 79% is all Batch 1 random merges"), not "please review". It checks overstatement and that every proportion states its denominator. Verify each rebuttal against the source before accepting it.
 
 ## Known defect: fa-zh compresses the time axis
 
@@ -60,16 +78,17 @@ For each figure: the question it answers, how to read it (variables and encoding
 - Give every self-built statistic a short formula, color each variable, and state how it is normalized.
 - Keep schematics minimal; usually show only the counterexample that gets flagged.
 - Highlight on screen whatever the narration is talking about, timed from the real sentence audio.
+- Self-drawn formulas and schematics follow the figure-language rule: text inside the figure is English and math only; Chinese goes in titles, cards and subtitles.
 
 ## Stable subtitle contract
 
-Treat timing, semantic cue boundaries, and visual line wrapping as separate layers:
+Treat timing, semantic cue boundaries, and visual line wrapping as separate layers. Items 2 and 3 apply only on the forced-alignment path (`align_subtitles.py`); per-sentence timing has no tokens to map.
 
 1. Create one timed cue per reviewed sentence. A two-line subtitle is one cue with a `lines` field, not two timed cues.
 2. Verify FunASR output against `tts_text` at normalized atomic-character level. Accept token merges only when content is identical; reject missing, added, or changed content.
 3. Map reviewed sentence boundaries to actual aligned-token boundaries. If a boundary falls inside one alignment token, stop for review.
 4. Add lead/tail padding from each sentence's own speech span. Resolve overlap at the midpoint between adjacent speech spans; never shift later cues cumulatively.
-5. Wrap long sentences into at most two visual lines, preferring punctuation or whitespace and preserving technical tokens. Use a compact two-line size and a transparent background with outline and shadow; an outline above about 2.5 px at 1440p blurs the strokes.
+5. Wrap long sentences into at most two visual lines, preferring punctuation or whitespace and preserving technical tokens. Line width defaults to what fits the canvas at the default subtitle size and margins (36 width units at 1440p); pass `--max-chars` only together with a non-default `--subtitle-size`. Use a compact two-line size and a transparent background with outline and shadow; an outline above about 2.5 px at 1440p blurs the strokes.
 6. Never estimate subtitle timing from character counts or fall back to proportional character timing.
 
 ## Failure policy

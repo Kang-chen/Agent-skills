@@ -53,6 +53,8 @@ def to_srt(cues: list[dict]) -> str:
 
 
 DEFAULT_SUBTITLE_FONT = "Noto Sans CJK SC"
+# loudnorm 内部按 192 kHz 处理，不指定输出采样率时 wav 会变成 192 kHz
+NARRATION_SAMPLE_RATE = "48000"
 SUBTITLE_STYLES = ("outline", "box")
 # 2026-11-11 在 2560x1440 实测可读的透明描边样式；其他分辨率按高度等比缩放
 _REFERENCE_HEIGHT = 1440
@@ -62,8 +64,38 @@ _OUTLINE_WIDTH = 2.5
 _OUTLINE_SHADOW = 1.0
 
 
+# 换行宽度的安全系数：留给描边、粗体西文字形和 libass 取整的余量
+_LINE_SAFETY = 0.96
+
+
 def _scaled(value: float, height: int) -> float:
     return value * height / _REFERENCE_HEIGHT
+
+
+def subtitle_margin(height: int) -> int:
+    """Left, right and bottom subtitle margin in pixels."""
+
+    return round(height * 0.038)
+
+
+def default_font_size(height: int, style: str = "outline") -> int:
+    """One-line subtitle font size in pixels for a canvas height."""
+
+    if style == "outline":
+        return round(_scaled(_OUTLINE_FONT_SIZE, height))
+    return max(38, round(height * 0.036))
+
+
+def max_line_units(width: int, height: int, font_size: int | None = None, style: str = "outline") -> int:
+    """Widest subtitle line, in width units (CJK = 1, ASCII = 0.56), that fits the canvas.
+
+    Derived from canvas width, one-line font size and side margins so that libass
+    never wraps a cue to a third line. Pass the same ``font_size`` as compose_video.
+    """
+
+    size = font_size or default_font_size(height, style)
+    usable = width - 2 * subtitle_margin(height)
+    return max(1, int(usable / size * _LINE_SAFETY))
 
 
 def subtitle_style_line(
@@ -76,15 +108,14 @@ def subtitle_style_line(
 
     if style not in SUBTITLE_STYLES:
         raise ValueError(f"Unknown subtitle style {style!r}; choose one of {SUBTITLE_STYLES}.")
-    margin = round(height * 0.038)
+    margin = subtitle_margin(height)
+    size = font_size or default_font_size(height, style)
     if style == "outline":
         # 白字粗体，纯黑描边，半透明黑阴影，BorderStyle=1 无底框；描边过粗会糊字
-        size = font_size or round(_scaled(_OUTLINE_FONT_SIZE, height))
         outline = round(_scaled(_OUTLINE_WIDTH, height), 2)
         shadow = round(_scaled(_OUTLINE_SHADOW, height), 2)
         colours, bold, border = "&H00FFFFFF,&H000000FF,&H00000000,&H96000000", -1, f"1,{outline:g},{shadow:g}"
     else:
-        size = font_size or max(38, round(height * 0.036))
         colours, bold, border = "&H00FFFFFF,&H000000FF,&H00101010,&H8A000000", 0, "3,6,0"
     return (
         f"Style: Default,{font},{size},{colours},{bold},0,0,0,100,100,0,0,{border},2,"
@@ -211,7 +242,7 @@ def main() -> None:
     silent = work / "silent.mp4"
     narration = output / f"{args.name}-narration.wav"
     run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(work / "clips.txt"), "-c", "copy", str(silent)])
-    run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(work / "audio.txt"), "-af", "loudnorm=I=-16:LRA=11:TP=-1.5", str(narration)])
+    run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(work / "audio.txt"), "-af", "loudnorm=I=-16:LRA=11:TP=-1.5", "-ar", NARRATION_SAMPLE_RATE, str(narration)])
 
     cues, total = build_global_timeline(project, aligned, args.gap)
     srt = output / f"{args.name}.srt"

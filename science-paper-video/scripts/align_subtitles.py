@@ -6,6 +6,7 @@ import argparse
 import json
 import math
 import re
+import sys
 import wave
 from array import array
 from pathlib import Path
@@ -46,7 +47,7 @@ def _visual_width(text: str) -> float:
     return width
 
 
-def split_display_lines(text: str, max_chars: int = 45) -> list[str]:
+def split_display_lines(text: str, max_chars: float = 45) -> list[str]:
     """Wrap one timed sentence into two lines, preferring semantic punctuation."""
 
     total_width = _visual_width(text)
@@ -210,7 +211,7 @@ def build_cues(
     spoken_text: str,
     aligned_tokens: Sequence[str],
     timestamps_ms: Sequence[Sequence[int]],
-    max_chars: int = 45,
+    max_chars: float = 45,
     audio_duration: float | None = None,
     lead_seconds: float = 0.08,
     tail_seconds: float = 0.18,
@@ -273,12 +274,22 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", default="fa-zh")
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--max-chars", type=int, default=45, help="Maximum visual width per subtitle line.")
+    parser.add_argument(
+        "--max-chars", type=float, default=None,
+        help="Maximum visual width per subtitle line (CJK = 1, ASCII = 0.56); "
+        "default derives from canvas width, subtitle font size and margins.",
+    )
     parser.add_argument("--max-drift-seconds", type=float, default=MAX_DRIFT_SECONDS)
     parser.add_argument("--max-drift-ratio", type=float, default=MAX_DRIFT_RATIO)
     args = parser.parse_args()
     project = json.loads(args.project.read_text(encoding="utf-8-sig"))
     base = args.project.parent
+    if args.max_chars is None:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from compose_video import max_line_units
+
+        canvas = project["canvas"]
+        args.max_chars = max_line_units(int(canvas["width"]), int(canvas["height"]))
 
     from funasr import AutoModel
 
