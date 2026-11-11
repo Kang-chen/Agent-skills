@@ -11,6 +11,8 @@
 - Render at least 1920×1080; prefer 3840×2160 for dense scientific figures.
 - Inspect representative exported-video frames at original resolution.
 - Keep axes, legends, units, panel letters, statistics, scale bars, and comparison groups visible.
+- The opening page shows the usage sentence from the SKILL.md resource use policy, verbatim, readable, and clear of subtitles.
+- Every figure slide is an unmodified original with a credit, or an own chart labeled as such.
 - Reject crops that upscale a low-resolution source without restoring readable information.
 
 ## Audio and subtitles
