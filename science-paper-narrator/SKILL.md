@@ -56,6 +56,7 @@ description: Use when users request rigorous Chinese scientific-paper summaries,
 5. 每个裁图资产必须有机器可读的 crop manifest，至少记录源渲染页、输出图片、裁框坐标和人工确认的 `required_bounds`（理解该 panel 所需内容的最外层边界）。运行 `scripts/validate_figure_crops.py <manifest> --review-dir <dir>`，要求裁框包住 `required_bounds`、输出尺寸匹配裁框且像素与源页一致。该校验不替代人工判断。
 6. 对每张 review sheet 做源图—裁图对照：红框是实际裁框，绿框是必须保留的内容边界。逐项确认 panel 字母、标题、所有底部/侧边标签、坐标轴、单位、图例、统计符号、比例尺和关键对照都在框内；四边至少留少量安全余量。不能只看主图中央，也不能用“图片存在”或“PDF 中已出现”代替完整性审阅。
 7. 若还需 PDF，先通过资产与裁图校验，再构建并渲染 PDF；逐页确认正文中的每张图都实际出现、内容完整且可读。仅有 Markdown 路径存在不足以代替视觉检查。
+8. 资源使用政策：所有figure和资源仅用于个人学习和研究，不进行任何商业行为。这句话原样写进成稿的来源与许可部分。配图优先直接用原文原图，不改色、不遮挡、不改标注；禁止演绎的许可（CC BY-NC-ND）优先整图展示；为看清内容必须裁 panel 时，保留 panel 字母、坐标轴和图例，在图注写明 panel，并告知用户。每张图记录来源和许可。这句声明不改变原有许可条款，公开分发前向用户说明禁止演绎和没有 CC 许可的来源。
 
 ## 输出结构
 

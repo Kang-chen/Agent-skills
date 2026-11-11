@@ -13,6 +13,15 @@ Build the audiovisual layer around reviewed scientific content.
 
 Treat `science-paper-narrator` as the only source for paper interpretation, scientific claims, figure extraction, crop manifests, and figure-integrity review. Do not recreate or silently fork those workflows here. This skill owns storyboarding for video, slide composition, local TTS, audio-text alignment, rendering, and media QA.
 
+## Resource use policy
+
+Everything in these videos is for personal study and research, with no commercial use.
+
+- Show this sentence, verbatim, at the bottom of the video's opening page: `所有figure和资源仅用于个人学习和研究，不进行任何商业行为`
+- Show the paper's original figures directly and leave them unmodified: no repainting, masking, or relabeling. Zooming, panning, moving the figure aside, and a highlight box are display choices. Explanatory animation sits beside the figure, not on top of it. For a no-derivatives licence, prefer the whole figure plus zoom; if a panel crop is needed for legibility, keep its label, axes, and legend, name the panel in the credit, and tell the user.
+- Use an own chart only when the numbers exist solely in a table or text, and credit it as `Own chart from <source>`. Credit originals as `<citation> · <licence> · original figure, unmodified · research and study only`.
+- The sentence states intent; it does not change licence terms. Record each source's licence in the provenance manifest, and flag no-derivatives and non-CC sources to the user before any public release.
+
 ## Text contract
 
 Keep three fields separate:
